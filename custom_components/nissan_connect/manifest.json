@@ -1,0 +1,13 @@
+{
+  "domain": "nissan_connect",
+  "name": "NissanConnect",
+  "version": "1.0.0",
+  "integration_type": "device",
+  "codeowners": [
+    "gilliginsisland"
+  ],
+  "config_flow": true,
+  "iot_class": "cloud_polling",
+  "documentation": "https://github.com/gilliginsisland/hass-nissan-connect",
+  "issue_tracker": "https://github.com/gilliginsisland/hass-nissan-connect/issues"
+}
