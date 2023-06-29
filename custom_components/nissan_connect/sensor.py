@@ -33,7 +33,6 @@ TIRE_SENSOR_TYPES = {
     'rrPressure': 'Rear Right Tire Pressure',
 }
 
-
 class NissanTirePressureSensor(NissanBaseEntity, SensorEntity):
     """Nissan tire pressure sensor."""
 
