@@ -27,10 +27,10 @@ async def async_setup_entry(
 
 
 TIRE_SENSOR_TYPES = {
-    'flPressure': 'Front Left Tire',
-    'frPressure': 'Front Right Tire',
-    'rlPressure': 'Rear Left Tire',
-    'rrPressure': 'Rear Right Tire',
+    'flPressure': 'Front Left Tire Pressure',
+    'frPressure': 'Front Right Tire Pressure',
+    'rlPressure': 'Rear Left Tire Pressure',
+    'rrPressure': 'Rear Right Tire Pressure',
 }
 
 

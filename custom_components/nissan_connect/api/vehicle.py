@@ -1,10 +1,4 @@
-from typing import (
-	Literal,
-	Sequence,
-	overload,
-	Type
-)
-from enum import StrEnum
+from typing import Callable
 import logging
 
 from pydantic import parse_obj_as
@@ -13,17 +7,14 @@ from requests import Session
 from .const import BASE_URL
 from .auth import Auth
 from .schema import (
-	BaseSchema,
+	RemoteCommand,
 	Service,
-	DoorCommand,
-	EngineCommand,
-	HornLightCommand,
 	RequestStatus,
 	LocationStatus,
 	VehicleStatus,
 )
 
-JSON = dict[str, 'JSON'] | list['JSON'] | int | str | float | bool | Type[None]
+JSON = dict[str, 'JSON'] | list['JSON'] | int | str | float | bool | type[None]
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -37,93 +28,63 @@ class Vehicle():
 			'vin': self.vin,
 		})
 
-	@overload
-	def get(self, service: Literal[Service.DOOR], request_id: str = '') -> RequestStatus:
-		...
-	@overload
-	def get(self, service: Literal[Service.ENGINE], request_id: str = '') -> RequestStatus:
-		...
-	@overload
-	def get(self, service: Literal[Service.HORN_AND_LIGHTS], request_id: str = '') -> RequestStatus:
-		...
-	@overload
-	def get(self, service: Literal[Service.SERVICE_HISTORY]) -> list[RequestStatus]:
-		...
-	@overload
-	def get(self, service: Literal[Service.VEHICLE_STATUS]) -> VehicleStatus:
-		...
-	@overload
-	def get(self, service: Literal[Service.LOCATION]) -> LocationStatus:
-		...
-	@overload
-	def get(self, service: Service) -> BaseSchema | Sequence[BaseSchema]:
-		...
-	@overload
-	def get(self, service: Service, request_id: str = '') -> RequestStatus:
-		...
-	def get(self, service: Service, request_id: str = '') -> BaseSchema | Sequence[BaseSchema]:
-		r = self.session.get(f'{self.base_url}/{service.path}/{request_id}').json()
+	def get_status(self, service: Service, request_id: str = '') -> JSON:
+		r = self.session.get(f'{self.base_url}/{service.value}/{request_id}').json()
 		_LOGGER.debug(f'Service "{service.name}" response: {r}')
-		return parse_obj_as(service.schema, r)
+		return r
 
-	@overload
-	def post(self, service: Literal[Service.DOOR], command: DoorCommand, pin: str = '') -> str:
-		...
-	@overload
-	def post(self, service: Literal[Service.ENGINE], command: EngineCommand, pin: str = '') -> str:
-		...
-	@overload
-	def post(self, service: Literal[Service.HORN_AND_LIGHTS], command: HornLightCommand, pin: str = '') -> str:
-		...
-	@overload
-	def post(self, service: Service, command: StrEnum, pin: str = '') -> str:
-		...
-	def post(self, service: Service, command: StrEnum, pin: str = '') -> str:
-		data = {'command': command.value}
+	def send_command(self, command: RemoteCommand, pin: str = '') -> Callable[[], RequestStatus]:
+		data = {'command': str(command)}
 		if pin:
 			data['pin'] = pin
-		r = self.session.post(f'{self.base_url}/{service.path}', json=data).json()
-		_LOGGER.debug(f'Service "{service.name}" response: {r}')
-		return r['serviceRequestId']
+
+		r = self.session.post(f'{self.base_url}/{command.service.value}', json=data).json()
+		_LOGGER.debug(f'Service "{command.service.name}::{command.name}" response: {r}')
+
+		request_id = r['serviceRequestId']
+		def status_tracker():
+			return RequestStatus.parse_obj(
+				self.get_status(command.service, request_id)
+			)
+
+		return status_tracker
 
 	def vehicle_status(self) -> VehicleStatus:
-		return self.get(Service.VEHICLE_STATUS)
+		return VehicleStatus.parse_obj(
+			self.get_status(Service.VEHICLE_STATUS)
+		)
 
 	def location(self) -> LocationStatus:
-		return self.get(Service.LOCATION)
+		return LocationStatus.parse_obj(
+			self.get_status(Service.LOCATION)
+		)
 
 	def service_history(self) -> list[RequestStatus]:
-		return self.get(Service.SERVICE_HISTORY)
+		return parse_obj_as(
+			list[RequestStatus],
+			self.get_status(Service.SERVICE_HISTORY)
+		)
 
-	def door_lock(self, pin: str = '') -> str:
-		return self.post(Service.DOOR, DoorCommand.LOCK, pin)
+	def door_lock(self, pin: str = '') -> Callable[[], RequestStatus]:
+		return self.send_command(RemoteCommand.LOCK, pin)
 
-	def door_unlock(self, pin: str = '') -> str:
-		return self.post(Service.DOOR, DoorCommand.UNLOCK, pin)
+	def door_unlock(self, pin: str = '') -> Callable[[], RequestStatus]:
+		return self.send_command(RemoteCommand.UNLOCK, pin)
 
-	def door_history(self, request_id: str = '') -> RequestStatus:
-		return self.get(Service.DOOR, request_id)
+	def engine_start(self, pin: str = '') -> Callable[[], RequestStatus]:
+		return self.send_command(RemoteCommand.START, pin)
 
-	def engine_start(self, pin: str = '') -> str:
-		return self.post(Service.ENGINE, EngineCommand.START, pin)
+	def engine_stop(self, pin: str = '') -> Callable[[], RequestStatus]:
+		return self.send_command(RemoteCommand.STOP, pin)
 
-	def engine_stop(self, pin: str = '') -> str:
-		return self.post(Service.ENGINE, EngineCommand.STOP, pin)
+	def engine_double_start(self, pin: str = '') -> Callable[[], RequestStatus]:
+		return self.send_command(RemoteCommand.DOUBLE_START, pin)
 
-	def engine_double_start(self, pin: str = '') -> str:
-		return self.post(Service.ENGINE, EngineCommand.DOUBLE_START, pin)
+	def horn(self, pin: str = '') -> Callable[[], RequestStatus]:
+		return self.send_command(RemoteCommand.HORN_ONLY, pin)
 
-	def engine_history(self, request_id: str = '') -> RequestStatus:
-		return self.get(Service.ENGINE, request_id)
+	def lights(self, pin: str = '') -> Callable[[], RequestStatus]:
+		return self.send_command(RemoteCommand.LIGHT_ONLY, pin)
 
-	def horn(self, pin: str = '') -> str:
-		return self.post(Service.HORN_AND_LIGHTS, HornLightCommand.HORN_ONLY, pin)
-
-	def lights(self, pin: str = '') -> str:
-		return self.post(Service.HORN_AND_LIGHTS, HornLightCommand.LIGHT_ONLY, pin)
-
-	def horn_and_lights(self, pin: str = '') -> str:
-		return self.post(Service.HORN_AND_LIGHTS, HornLightCommand.HORN_LIGHT, pin)
-
-	def horn_lights_history(self, request_id: str = '') -> RequestStatus:
-		return self.get(Service.HORN_AND_LIGHTS, request_id)
+	def horn_and_lights(self, pin: str = '') -> Callable[[], RequestStatus]:
+		return self.send_command(RemoteCommand.HORN_LIGHT, pin)

@@ -1,37 +1,47 @@
-from typing import List, Optional, Type
+from typing import Iterable, Optional
 from enum import StrEnum
 from datetime import datetime
 from pydantic import BaseModel
 
 
-class LockState(StrEnum):
-	LOCKED = 'locked'
-	UNLOCKED = 'unlocked'
+class Service(StrEnum):
+	DOOR = 'remote-door'
+	ENGINE = 'remote-engine'
+	HORN_AND_LIGHTS = 'remote-horn-and-lights'
+	SERVICE_HISTORY = 'remote-service-history'
+	LOCATION = 'telemetry/location'
+	VEHICLE_STATUS = 'telemetry/vehiclestatus'
 
-class DoorState(StrEnum):
-	OPEN = 'open'
-	CLOSED = 'closed'
+class _ServiceEnum(StrEnum):
+	def __new__(cls, service, *_):
+		value = str(service)
+		member = str.__new__(cls, value)
+		member._value_ = value
+		return member
 
-class RequestState(StrEnum):
-	INITIATED = 'INITIATED'
-	SUCCESS = 'SUCCESS'
-	FAILED = 'FAILED'
-	CANCELLATION_SUCCESS = 'CANCELLATION_SUCCESS'
-	CANCELLATION_FAILED = 'CANCELLATION_FAILED'
+	def __init__(self, _: str, service: Service):
+		self._service_ = service
 
-class DoorCommand(StrEnum):
-	LOCK = 'LOCK'
-	UNLOCK = 'UNLOCK'
+	@property
+	def service(self) -> Service:
+		return self._service_
 
-class EngineCommand(StrEnum):
-	STOP = 'STOP'
-	START = 'START'
-	DOUBLE_START = 'DOUBLE_START'
+class ServiceType(_ServiceEnum):
+	REMOTE_DOOR_LOCK = 'REMOTE_DOOR_LOCK', Service.DOOR
+	REMOTE_DOOR_UNLOCK = 'REMOTE_DOOR_UNLOCK', Service.DOOR
+	REMOTE_START = 'REMOTE_START', Service.ENGINE
+	VEHICLE_LOCATOR = 'VEHICLE_LOCATOR', Service.LOCATION
 
-class HornLightCommand(StrEnum):
-	LIGHT_ONLY = 'LIGHT_ONLY'
-	HORN_LIGHT = 'HORN_LIGHT'
-	HORN_ONLY = 'HORN_ONLY'
+class RemoteCommand(_ServiceEnum):
+	LOCK = 'LOCK', Service.DOOR
+	UNLOCK = 'UNLOCK', Service.DOOR
+	STOP = 'STOP', Service.ENGINE
+	START = 'START', Service.ENGINE
+	DOUBLE_START = 'DOUBLE_START', Service.ENGINE
+	LIGHT_ONLY = 'LIGHT_ONLY', Service.HORN_AND_LIGHTS
+	HORN_LIGHT = 'HORN_LIGHT', Service.HORN_AND_LIGHTS
+	HORN_ONLY = 'HORN_ONLY', Service.HORN_AND_LIGHTS
+
 
 class BaseSchema(BaseModel):
 	def __getitem__(self, item: str):
@@ -72,6 +82,14 @@ class MalfunctionIndicatorLampsStatus(BaseSchema):
 class HealthStatus(BaseSchema):
 	malfunctionIndicatorLamps: MalfunctionIndicatorLampsStatus
 
+class LockState(StrEnum):
+	LOCKED = 'locked'
+	UNLOCKED = 'unlocked'
+
+class DoorState(StrEnum):
+	OPEN = 'open'
+	CLOSED = 'closed'
+
 class LockStatus(BaseSchema):
 	lockStatus: LockState
 	doorStatusFrontLeft: DoorState
@@ -88,14 +106,6 @@ class VehicleStatus(BaseSchema):
 	healthStatus: HealthStatus
 	lockStatus: LockStatus
 
-class RequestStatus(BaseSchema):
-	serviceRequestId: str
-	serviceType: 'ServiceType'
-	status: RequestState
-	activationDateTime: Optional[datetime] = None
-	statusChangeDateTime: Optional[datetime] = None
-	command: Optional[str] = None
-
 class LocationStatus(BaseSchema):
 	status: Optional[str] = None
 	serviceType: Optional[str] = None
@@ -103,56 +113,17 @@ class LocationStatus(BaseSchema):
 	statusChangeDateTime: Optional[datetime] = None
 	location: GeoPoint
 
-class Service(StrEnum):
-	DOOR = 'DOOR', 'remote-door', DoorCommand, RequestStatus
-	ENGINE = 'ENGINE', 'remote-engine', EngineCommand, RequestStatus
-	HORN_AND_LIGHTS = 'HORN_AND_LIGHTS', 'remote-horn-and-lights', HornLightCommand, RequestStatus
-	SERVICE_HISTORY = 'SERVICE_HISTORY', 'remote-service-history', None, List[RequestStatus]
-	LOCATION = 'LOCATION', 'telemetry/location', None, LocationStatus
-	VEHICLE_STATUS = 'VEHICLE_STATUS', 'telemetry/vehiclestatus', None, VehicleStatus
+class RequestState(StrEnum):
+	INITIATED = 'INITIATED'
+	SUCCESS = 'SUCCESS'
+	FAILED = 'FAILED'
+	CANCELLATION_SUCCESS = 'CANCELLATION_SUCCESS'
+	CANCELLATION_FAILED = 'CANCELLATION_FAILED'
 
-	def __new__(cls, *args):
-		value = str(args[0])
-		member = str.__new__(cls, value)
-		member._value_ = value
-		return member
-
-	def __init__(self, _: str, path: str, command: Optional[Type[StrEnum]], schema: Type[BaseSchema]):
-		self._path_ = path
-		self._command_ = command
-		self._schema_ = schema
-
-	@property
-	def path(self):
-		return self._path_
-
-	@property
-	def command(self):
-		return self._command_
-
-	@property
-	def schema(self):
-		return self._schema_
-
-class ServiceType(StrEnum):
-	REMOTE_DOOR_LOCK = 'REMOTE_DOOR_LOCK', Service.DOOR
-	REMOTE_DOOR_UNLOCK = 'REMOTE_DOOR_UNLOCK', Service.DOOR
-	REMOTE_START = 'REMOTE_START', Service.ENGINE
-	VEHICLE_LOCATOR = 'VEHICLE_LOCATOR', Service.LOCATION
-
-	def __new__(cls, *args):
-		value = str(args[0])
-		member = str.__new__(cls, value)
-		member._value_ = value
-		return member
-
-	def __init__(self, _: str, service: Service):
-		self._service_ = service
-
-	@property
-	def service(self):
-		return self._service_
-
-# This is required because RequestStatus uses ServiceType
-# and ServiceType just got defined
-RequestStatus.update_forward_refs()
+class RequestStatus(BaseSchema):
+	serviceRequestId: str
+	serviceType: ServiceType
+	status: RequestState
+	activationDateTime: Optional[datetime] = None
+	statusChangeDateTime: Optional[datetime] = None
+	command: Optional[RemoteCommand] = None

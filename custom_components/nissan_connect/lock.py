@@ -1,5 +1,4 @@
 from __future__ import annotations
-import functools as ft
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -39,20 +38,23 @@ class NissanLock(NissanBaseEntity, LockEntity):
     async def async_lock(self) -> None:
         self._attr_is_locking = True
         try:
-            request_id = await self.hass.async_add_executor_job(self.vehicle.door_lock)
-            status_func = ft.partial(self.vehicle.door_history, request_id)
-            await self._async_follow_request(status_func)
+            await self._async_follow_request(
+                await self.hass.async_add_executor_job(
+                    self.vehicle.door_lock
+                )
+            )
         finally:
             self._attr_is_locking = False
-            await self.coordinator.async_request_refresh()
+            await self.async_update()
 
     async def async_unlock(self) -> None:
         self._attr_is_unlocking = True
-        self.async_write_ha_state()
         try:
-            request_id = await self.hass.async_add_executor_job(self.vehicle.door_unlock)
-            status_func = ft.partial(self.vehicle.door_history, request_id)
-            await self._async_follow_request(status_func)
+            await self._async_follow_request(
+                await self.hass.async_add_executor_job(
+                    self.vehicle.door_unlock
+                )
+            )
         finally:
             self._attr_is_unlocking = False
-            await self.coordinator.async_request_refresh()
+            await self.async_update()

@@ -113,13 +113,11 @@ class NissanBaseEntity(CoordinatorEntity[NissanDataUpdateCoordinator]):
         return f'{self.vehicle.vin}_{self.entity_description.key}'
 
     async def _async_follow_request(
-        self,
-        status_func: Callable[[], RequestStatus],
-        delay: int = 1
+        self, status_tracker: Callable[[], RequestStatus], delay: int = 1
     ) -> RequestStatus:
         while True:
             await asyncio.sleep(delay)
-            r = await self.hass.async_add_executor_job(status_func)
+            r = await self.hass.async_add_executor_job(status_tracker)
             if r.status != RequestState.INITIATED:
                 return r
             delay += 1
