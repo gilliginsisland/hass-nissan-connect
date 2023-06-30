@@ -37,24 +37,18 @@ class NissanLock(NissanBaseEntity, LockEntity):
 
     async def async_lock(self) -> None:
         self._attr_is_locking = True
+        self.async_write_ha_state()
         try:
-            await self._async_follow_request(
-                await self.hass.async_add_executor_job(
-                    self.vehicle.door_lock
-                )
-            )
+            await self._async_send_command(self.vehicle.door_lock)
         finally:
             self._attr_is_locking = False
-            await self.async_update()
+            self.async_write_ha_state()
 
     async def async_unlock(self) -> None:
         self._attr_is_unlocking = True
+        self.async_write_ha_state()
         try:
-            await self._async_follow_request(
-                await self.hass.async_add_executor_job(
-                    self.vehicle.door_unlock
-                )
-            )
+            await self._async_send_command(self.vehicle.door_unlock)
         finally:
             self._attr_is_unlocking = False
-            await self.async_update()
+            self.async_write_ha_state()
