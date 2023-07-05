@@ -10,7 +10,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
 )
 
-from .api.schema import DoorState
+from .api.schema import DoorState, VehicleStatus
 
 from .const import DOMAIN
 from .coordinator import NissanBaseEntity, NissanDataUpdateCoordinator
@@ -22,7 +22,8 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Nissan tracker from config entry."""
-    coordinator: NissanDataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+    data = hass.data[DOMAIN][config_entry.entry_id]
+    coordinator: NissanDataUpdateCoordinator[VehicleStatus] = data[VehicleStatus]
     async_add_entities([NissanBinarySensor(coordinator, item) for item in BINARY_SENSORS])
 
 
@@ -65,12 +66,12 @@ BINARY_SENSORS = [
     ),
 ]
 
-class NissanBinarySensor(NissanBaseEntity, BinarySensorEntity):
+class NissanBinarySensor(NissanBaseEntity[VehicleStatus], BinarySensorEntity):
     """Nissan door sensor."""
 
     def __init__(
         self,
-        coordinator: NissanDataUpdateCoordinator,
+        coordinator: NissanDataUpdateCoordinator[VehicleStatus],
         description: BinarySensorEntityDescription,
     ) -> None:
         """Initialize the Tracker."""
@@ -80,5 +81,5 @@ class NissanBinarySensor(NissanBaseEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool | None:
-        state: DoorState = self.data.lock[self.entity_description.key]
+        state: DoorState = self.data.lockStatus[self.entity_description.key]
         return state == DoorState.OPEN

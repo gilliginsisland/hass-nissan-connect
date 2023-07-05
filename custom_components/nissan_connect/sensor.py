@@ -12,6 +12,8 @@ from homeassistant.components.sensor import (
     SensorDeviceClass,
 )
 
+from .api.schema import VehicleStatus
+
 from .const import DOMAIN
 from .coordinator import NissanBaseEntity, NissanDataUpdateCoordinator
 
@@ -22,8 +24,9 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Nissan tracker from config entry."""
-    coordinator: NissanDataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id]
-    async_add_entities([NissanTirePressureSensor(coordinator, *item) for item in TIRE_SENSOR_TYPES.items()])
+    data = hass.data[DOMAIN][config_entry.entry_id]
+    coordinator: NissanDataUpdateCoordinator[VehicleStatus] = data[VehicleStatus]
+    async_add_entities([NissanTirePressureSensor(coordinator, key, name) for key, name in TIRE_SENSOR_TYPES.items()])
 
 
 TIRE_SENSOR_TYPES = {
@@ -33,10 +36,10 @@ TIRE_SENSOR_TYPES = {
     'rrPressure': 'Rear Right Tire Pressure',
 }
 
-class NissanTirePressureSensor(NissanBaseEntity, SensorEntity):
+class NissanTirePressureSensor(NissanBaseEntity[VehicleStatus], SensorEntity):
     """Nissan tire pressure sensor."""
 
-    def __init__(self, coordinator: NissanDataUpdateCoordinator, key: str, name: str) -> None:
+    def __init__(self, coordinator: NissanDataUpdateCoordinator[VehicleStatus], key: str, name: str) -> None:
         """Initialize the Tracker."""
         super().__init__(coordinator)
 

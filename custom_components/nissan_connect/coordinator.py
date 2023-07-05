@@ -1,102 +1,51 @@
 """Coordinator for Nissan."""
 from __future__ import annotations
-from typing import Any, Callable
-from dataclasses import dataclass
+from logging import Logger
+from typing import Any, Callable, TypeVar
 from datetime import timedelta
-import functools as ft
 import asyncio
-import logging
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     CoordinatorEntity,
-    UpdateFailed,
 )
-from homeassistant.util.async_ import run_callback_threadsafe
 
-from .api.auth import Auth, Token
 from .api.vehicle import Vehicle
 from .api.schema import (
-    GeoPoint,
-    LockStatus,
-    PressureStatus,
     RequestState,
     RequestStatus,
 )
 
-from .const import CONF_TOKEN, CONF_VIN, DOMAIN, ATTRIBUTION
+from .const import DOMAIN, ATTRIBUTION
 
 DEFAULT_SCAN_INTERVAL_SECONDS = 300
 SCAN_INTERVAL = timedelta(seconds=DEFAULT_SCAN_INTERVAL_SECONDS)
-_LOGGER = logging.getLogger(__name__)
+
+_T = TypeVar("_T")
 
 
-@dataclass
-class VehicleData():
-    location: GeoPoint
-    pressure: PressureStatus
-    lock: LockStatus
-
-
-class NissanDataUpdateCoordinator(DataUpdateCoordinator[VehicleData]):
+class NissanDataUpdateCoordinator(DataUpdateCoordinator[_T]):
     """Class to manage fetching Nissan data."""
-    def __init__(self, hass: HomeAssistant, *, entry: ConfigEntry) -> None:
+    def __init__(
+        self, hass: HomeAssistant, logger: Logger, *, vehicle: Vehicle, **kwargs
+    ) -> None:
         """Initialize vehicle-wide Nissan data updater."""
-        token = Token.from_dict(entry.data[CONF_TOKEN])
-        def token_updater(token: Token):
-            """Handle from sync context when token is updated."""
-            run_callback_threadsafe(
-                hass.loop,
-                ft.partial(
-                    hass.config_entries.async_update_entry,
-                    entry,
-                    data={**entry.data, CONF_TOKEN: token.to_dict()},
-                ),
-            ).result()
-
-        self.auth = Auth(token=token, token_updater=token_updater)
-        self.vehicle = Vehicle(self.auth, entry.data[CONF_VIN])
-        self._entry = entry
-
-        super().__init__(
-            hass,
-            _LOGGER,
-            name=f"{DOMAIN}-{entry.data['vin']}",
-            update_interval=SCAN_INTERVAL,
-            update_method=self._async_update_data
-        )
-
-    async def _async_update_data(self) -> VehicleData:
-        """Fetch data from Nissan."""
-        try:
-            location, vehicle = await asyncio.gather(
-                self.hass.async_add_executor_job(self.vehicle.location),
-                self.hass.async_add_executor_job(self.vehicle.vehicle_status),
-            )
-        except Exception as err:
-            raise UpdateFailed(f"Error communicating with Nissan API: {err}") from err
-
-        return VehicleData(
-            location=location.location,
-            pressure=vehicle.pressure,
-            lock=vehicle.lockStatus,
-        )
+        self.vehicle = vehicle
+        super().__init__(hass, logger, **kwargs)
 
 
-class NissanBaseEntity(CoordinatorEntity[NissanDataUpdateCoordinator]):
+class NissanBaseEntity(CoordinatorEntity[NissanDataUpdateCoordinator[_T]]):
     """Common base for Nissan entities."""
 
     _attr_attribution = ATTRIBUTION
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: NissanDataUpdateCoordinator) -> None:
+    def __init__(self, coordinator: NissanDataUpdateCoordinator[_T]) -> None:
         """Initialize entity."""
         super().__init__(coordinator)
 
-        self.vehicle = self.coordinator.vehicle
         self._attrs: dict[str, Any] = {
             "vin": self.vehicle.vin,
         }
@@ -105,22 +54,16 @@ class NissanBaseEntity(CoordinatorEntity[NissanDataUpdateCoordinator]):
         )
 
     @property
-    def data(self):
+    def vehicle(self) -> Vehicle:
+        return self.coordinator.vehicle
+
+    @property
+    def data(self) -> _T:
         return self.coordinator.data
 
     @property
     def unique_id(self) -> str:
         return f'{self.vehicle.vin}_{self.entity_description.key}'
-
-    async def _async_send_command(
-        self, command: Callable[[], Callable[[], RequestStatus]]
-    ) -> RequestStatus:
-        try:
-            return await self._async_follow_request(
-                await self.hass.async_add_executor_job(command)
-            )
-        finally:
-            await self.coordinator.async_request_refresh()
 
     async def _async_follow_request(
         self, status_tracker: Callable[[], RequestStatus], delay: int = 2
