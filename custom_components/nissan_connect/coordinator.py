@@ -1,7 +1,8 @@
 """Coordinator for Nissan."""
 from __future__ import annotations
-from logging import Logger
 from typing import Any, Callable, TypeVar
+import logging
+import functools as ft
 from datetime import timedelta
 import asyncio
 
@@ -10,6 +11,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     CoordinatorEntity,
+    UpdateFailed,
 )
 
 from .api.vehicle import Vehicle
@@ -20,8 +22,8 @@ from .api.schema import (
 
 from .const import DOMAIN, ATTRIBUTION
 
-DEFAULT_SCAN_INTERVAL_SECONDS = 300
-SCAN_INTERVAL = timedelta(seconds=DEFAULT_SCAN_INTERVAL_SECONDS)
+_LOGGER = logging.getLogger(__name__)
+_SCAN_INTERVAL = timedelta(minutes=5)
 
 _T = TypeVar("_T")
 
@@ -29,11 +31,24 @@ _T = TypeVar("_T")
 class NissanDataUpdateCoordinator(DataUpdateCoordinator[_T]):
     """Class to manage fetching Nissan data."""
     def __init__(
-        self, hass: HomeAssistant, logger: Logger, *, vehicle: Vehicle, **kwargs
+        self,
+        hass: HomeAssistant,
+        *,
+        vehicle: Vehicle,
+        method: Callable[[Vehicle], _T],
     ) -> None:
         """Initialize vehicle-wide Nissan data updater."""
+        self._method = ft.partial(hass.async_add_executor_job, method)
         self.vehicle = vehicle
-        super().__init__(hass, logger, **kwargs)
+        name=f'{type(self).__name__} {vehicle.vin}'
+        super().__init__(hass, _LOGGER, name=name, update_interval=_SCAN_INTERVAL)
+
+    async def _async_update_data(self) -> _T:
+        """Update data."""
+        try:
+            return await self._method(self.vehicle)
+        except Exception as err:
+            raise UpdateFailed() from err
 
 
 class NissanBaseEntity(CoordinatorEntity[NissanDataUpdateCoordinator[_T]]):

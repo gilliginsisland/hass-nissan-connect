@@ -6,9 +6,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.lock import LockEntity, LockEntityDescription
 
-from .api.vehicle import Vehicle
 from .api.schema import LockState, RequestStatus, VehicleStatus
 
+from . import DomainData
 from .const import DOMAIN
 from .coordinator import NissanBaseEntity, NissanDataUpdateCoordinator
 
@@ -18,9 +18,8 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Nissan tracker from config entry."""
-    data = hass.data[DOMAIN][config_entry.entry_id]
-    coordinator: NissanDataUpdateCoordinator[VehicleStatus] = data[VehicleStatus]
-    async_add_entities([NissanLock(coordinator)])
+    data: DomainData = hass.data[DOMAIN][config_entry.entry_id]
+    async_add_entities([NissanLock(data.status)])
 
 class NissanLock(NissanBaseEntity[VehicleStatus], LockEntity):
     """Nissan vehicle lock."""
