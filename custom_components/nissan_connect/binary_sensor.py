@@ -12,6 +12,7 @@ from homeassistant.components.binary_sensor import (
 
 from .api.schema import DoorState, VehicleStatus
 
+from . import DomainData
 from .const import DOMAIN
 from .coordinator import NissanBaseEntity, NissanDataUpdateCoordinator
 
@@ -22,9 +23,8 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Nissan tracker from config entry."""
-    data = hass.data[DOMAIN][config_entry.entry_id]
-    coordinator: NissanDataUpdateCoordinator[VehicleStatus] = data[VehicleStatus]
-    async_add_entities([NissanBinarySensor(coordinator, item) for item in BINARY_SENSORS])
+    data: DomainData = hass.data[DOMAIN][config_entry.entry_id]
+    async_add_entities([NissanBinarySensor(data.status, item) for item in BINARY_SENSORS])
 
 
 BINARY_SENSORS = [

@@ -1,9 +1,8 @@
 """Support for Nissan Connect Services."""
 from __future__ import annotations
 import asyncio
-from datetime import timedelta
 import functools as ft
-import logging
+from dataclasses import dataclass
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform, __version__
@@ -23,11 +22,6 @@ from .const import (
 )
 from .coordinator import NissanDataUpdateCoordinator
 
-DEFAULT_SCAN_INTERVAL_SECONDS = 300
-SCAN_INTERVAL = timedelta(seconds=DEFAULT_SCAN_INTERVAL_SECONDS)
-_LOGGER = logging.getLogger(__name__)
-
-
 PLATFORMS = [
     Platform.BINARY_SENSOR,
     # Platform.BUTTON,
@@ -35,6 +29,12 @@ PLATFORMS = [
     Platform.LOCK,
     Platform.DEVICE_TRACKER,
 ]
+
+
+@dataclass
+class DomainData():
+    status: NissanDataUpdateCoordinator[VehicleStatus]
+    location: NissanDataUpdateCoordinator[LocationStatus]
 
 
 async def async_setup(hass: HomeAssistant, _: ConfigType) -> bool:
@@ -59,6 +59,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     auth = Auth(token=token, token_updater=token_updater)
     vehicle = Vehicle(auth, entry.data[CONF_VIN])
 
+    # Setup the coordinator and set up all platforms
+    data = DomainData(
+        location=NissanDataUpdateCoordinator(
+            hass, vehicle=vehicle, method=Vehicle.location,
+        ),
+        status=NissanDataUpdateCoordinator(
+            hass, vehicle=vehicle, method=Vehicle.vehicle_status,
+        ),
+    )
+    await asyncio.gather(
+        data.location.async_config_entry_first_refresh(),
+        data.status.async_config_entry_first_refresh(),
+    )
+
+    hass.data[DOMAIN][entry.entry_id] = data
+
     device_registry = dr.async_get(hass)
     device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
@@ -68,38 +84,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         model='Rogue',
     )
 
-    # Setup the coordinator and set up all platforms
-    data = {
-        Vehicle: vehicle,
-        LocationStatus: NissanDataUpdateCoordinator[LocationStatus](
-            hass,
-            _LOGGER,
-            name=f"{DOMAIN}-{entry.data[CONF_VIN]}-location",
-            update_interval=SCAN_INTERVAL,
-            update_method=ft.partial(
-                hass.async_add_executor_job,
-                vehicle.location,
-            ),
-            vehicle=vehicle,
-        ),
-        VehicleStatus: NissanDataUpdateCoordinator[VehicleStatus](
-            hass,
-            _LOGGER,
-            name=f"{DOMAIN}-{entry.data[CONF_VIN]}-status",
-            update_interval=SCAN_INTERVAL,
-            update_method=ft.partial(
-                hass.async_add_executor_job,
-                vehicle.vehicle_status,
-            ),
-            vehicle=vehicle,
-        ),
-    }
-
-    hass.data[DOMAIN][entry.entry_id] = data
-    await asyncio.gather(
-        data[LocationStatus].async_config_entry_first_refresh(),
-        data[VehicleStatus].async_config_entry_first_refresh(),
-    )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True

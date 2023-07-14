@@ -9,6 +9,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .api.schema import LocationStatus
 
+from . import DomainData
 from .const import DOMAIN
 from .coordinator import NissanBaseEntity, NissanDataUpdateCoordinator
 
@@ -19,9 +20,8 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Nissan tracker from config entry."""
-    data = hass.data[DOMAIN][config_entry.entry_id]
-    coordinator: NissanDataUpdateCoordinator[LocationStatus] = data[LocationStatus]
-    async_add_entities([NissanDeviceTracker(coordinator)])
+    data: DomainData = hass.data[DOMAIN][config_entry.entry_id]
+    async_add_entities([NissanDeviceTracker(data.location)])
 
 
 class NissanDeviceTracker(NissanBaseEntity[LocationStatus], TrackerEntity):
