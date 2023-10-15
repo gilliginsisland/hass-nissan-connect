@@ -44,19 +44,7 @@ async def async_setup(hass: HomeAssistant, _: ConfigType) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    def token_updater(token: Token):
-        """Handle from sync context when token is updated."""
-        run_callback_threadsafe(
-            hass.loop,
-            ft.partial(
-                hass.config_entries.async_update_entry,
-                entry,
-                data={**entry.data, CONF_TOKEN: token.to_dict()},
-            ),
-        ).result()
-
-    token = Token.from_dict(entry.data[CONF_TOKEN])
-    auth = Auth(token=token, token_updater=token_updater)
+    auth = Auth(token_storage=TokenStorage(hass, entry))
     vehicle = Vehicle(auth, entry.data[CONF_VIN])
 
     # Setup the coordinator and set up all platforms
@@ -99,3 +87,23 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data[DOMAIN].pop(entry.entry_id)
 
     return unload_ok
+
+
+class TokenStorage():
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        self.hass = hass
+        self.entry = entry
+
+    def get(self) -> Token:
+        return Token.from_dict(self.entry.data[CONF_TOKEN])
+
+    def set(self, token: Token):
+        """Handle from sync context when token is updated."""
+        run_callback_threadsafe(
+            self.hass.loop,
+            ft.partial(
+                self.hass.config_entries.async_update_entry,
+                self.entry,
+                data={**self.entry.data, CONF_TOKEN: token.to_dict()},
+            ),
+        ).result()

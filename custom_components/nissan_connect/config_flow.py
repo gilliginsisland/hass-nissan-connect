@@ -1,46 +1,77 @@
 from typing import Any
+from abc import ABC, abstractmethod
 
 import voluptuous as vol
 
 from homeassistant import config_entries, core, exceptions
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
-from homeassistant.data_entry_flow import FlowResult
+from homeassistant.data_entry_flow import (
+    FlowHandler,
+    FlowResult,
+)
 
 from .api.auth import Auth
 
 from . import DOMAIN
 from .const import CONF_VIN, CONF_TOKEN
 
-DATA_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_USERNAME): str,
-        vol.Required(CONF_PASSWORD): str,
-        vol.Required(CONF_VIN): str,
-    }
-)
+DATA_SCHEMA = vol.Schema({
+    vol.Required(CONF_USERNAME): str,
+    vol.Required(CONF_PASSWORD): str,
+    vol.Required(CONF_VIN): str,
+})
 
 
-async def validate_input(
-    hass: core.HomeAssistant, data: dict[str, Any]
+async def generate_token(
+    hass: core.HomeAssistant, username: str, password: str
 ) -> dict[str, Any]:
-    """Validate the user input allows us to connect.
+    """Validate the user input allows us to connect."""
 
-    Data has the keys from DATA_SCHEMA with values provided by the user.
-    """
     auth = Auth()
     try:
         await hass.async_add_executor_job(
-            auth.fetch_tokens,
-            data[CONF_USERNAME],
-            data[CONF_PASSWORD],
+            auth.fetch_token, username, password
         )
     except Exception as ex:
         raise CannotConnect from ex
 
-    return auth.token.to_dict()
+    return auth.token_storage.get().to_dict()
 
 
-class NissanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class BaseFlow(FlowHandler, ABC):
+    """Represent the base config flow for NissanConnect."""
+
+    @abstractmethod
+    async def async_save_entry(self, data: dict[str, Any]) -> FlowResult:
+        """Create or update the config_entry."""
+        pass
+
+    async def async_step_sign_in(
+        self, user_input: dict[str, Any] | None
+    ) -> FlowResult:
+        """Update the config_entry."""
+
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            try:
+                token = await generate_token(
+                    self.hass, user_input[CONF_USERNAME], user_input[CONF_PASSWORD]
+                )
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
+            else:
+                return await self.async_save_entry(
+                    data={
+                        CONF_VIN: user_input[CONF_VIN],
+                        CONF_TOKEN: token,
+                    },
+                )
+        return self.async_show_form(
+            step_id="sign_in", data_schema=DATA_SCHEMA, errors=errors
+        )
+
+
+class ConfigFlow(BaseFlow, config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Nissan."""
 
     VERSION = 1
@@ -48,32 +79,41 @@ class NissanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Handle the initial step."""
-        errors: dict[str, str] = {}
-        if user_input is not None:
-            unique_id = user_input[CONF_VIN]
+        return await self.async_step_sign_in(user_input)
 
-            await self.async_set_unique_id(unique_id)
-            self._abort_if_unique_id_configured()
+    async def async_save_entry(
+        self, data: dict[str, Any]
+    ) -> FlowResult:
+        """Create the config_entry."""
+        await self.async_set_unique_id(data[CONF_VIN])
+        self._abort_if_unique_id_configured()
+        return self.async_create_entry(title=data[CONF_VIN], data=data)
 
-            token = None
-            try:
-                token = await validate_input(self.hass, user_input)
-            except CannotConnect:
-                errors["base"] = "cannot_connect"
+    @staticmethod
+    @core.callback
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> config_entries.OptionsFlow:
+        """Create the options flow."""
+        return OptionsFlow(config_entry)
 
-            if token:
-                return self.async_create_entry(
-                    title=user_input[CONF_VIN],
-                    data={
-                        CONF_VIN: user_input[CONF_VIN],
-                        CONF_TOKEN: token,
-                    },
-                )
 
-        return self.async_show_form(
-            step_id="user", data_schema=DATA_SCHEMA, errors=errors
+class OptionsFlow(BaseFlow, config_entries.OptionsFlowWithConfigEntry):
+    """Handle an options flow for Nissan."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        return await self.async_step_sign_in(user_input)
+
+    async def async_save_entry(
+        self, data: dict[str, Any]
+    ) -> FlowResult:
+        """Update the config_entry."""
+        self.hass.config_entries.async_update_entry(
+            self.config_entry, data=data,
         )
+        return self.async_create_entry(title="", data={})
 
 
 class CannotConnect(exceptions.HomeAssistantError):

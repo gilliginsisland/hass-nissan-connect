@@ -4,6 +4,7 @@ import os
 from pprint import pp
 
 from .auth import Auth
+from .token import SimpleTokenStorage
 from .vehicle import Vehicle
 from .schema import RemoteCommand, Service
 
@@ -29,7 +30,7 @@ def main():
 	args = parser.parse_args()
 
 	auth = Auth()
-	auth.fetch_tokens(args.username, args.password)
+	auth.fetch_token(args.username, args.password)
 
 	vehicle = Vehicle(auth, args.vin)
 	if getattr(args, 'command', None):

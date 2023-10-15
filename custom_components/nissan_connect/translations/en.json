@@ -8,7 +8,26 @@
       "invalid_auth": "Invalid authentication"
     },
     "step": {
-      "user": {
+      "sign_in": {
+        "title": "Sign-in with MyNissan account",
+        "data": {
+          "password": "Password",
+          "username": "Username",
+          "vin": "VIN"
+        }
+      }
+    }
+  },
+  "options": {
+    "abort": {
+      "already_configured": "Account is already configured"
+    },
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication"
+    },
+    "step": {
+      "sign_in": {
         "title": "Sign-in with MyNissan account",
         "data": {
           "password": "Password",
