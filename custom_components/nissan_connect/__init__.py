@@ -33,6 +33,7 @@ PLATFORMS = [
 
 @dataclass
 class DomainData():
+    vehicle: Vehicle
     status: NissanDataUpdateCoordinator[VehicleStatus]
     location: NissanDataUpdateCoordinator[LocationStatus]
 
@@ -49,6 +50,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Setup the coordinator and set up all platforms
     data = DomainData(
+        vehicle=vehicle,
         location=NissanDataUpdateCoordinator(
             hass, vehicle=vehicle, method=Vehicle.location,
         ),

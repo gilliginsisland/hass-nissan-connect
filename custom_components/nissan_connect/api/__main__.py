@@ -4,7 +4,6 @@ import os
 from pprint import pp
 
 from .auth import Auth
-from .token import SimpleTokenStorage
 from .vehicle import Vehicle
 from .schema import RemoteCommand, Service
 

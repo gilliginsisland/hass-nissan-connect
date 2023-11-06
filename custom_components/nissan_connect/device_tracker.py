@@ -11,7 +11,7 @@ from .api.schema import LocationStatus
 
 from . import DomainData
 from .const import DOMAIN
-from .coordinator import NissanBaseEntity, NissanDataUpdateCoordinator
+from .coordinator import NissanCoordinatorEntity, NissanDataUpdateCoordinator
 
 
 async def async_setup_entry(
@@ -24,7 +24,7 @@ async def async_setup_entry(
     async_add_entities([NissanDeviceTracker(data.location)])
 
 
-class NissanDeviceTracker(NissanBaseEntity[LocationStatus], TrackerEntity):
+class NissanDeviceTracker(NissanCoordinatorEntity[LocationStatus], TrackerEntity):
     """Nissan device tracker."""
 
     def __init__(self, coordinator: NissanDataUpdateCoordinator[LocationStatus]) -> None:

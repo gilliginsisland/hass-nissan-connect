@@ -16,7 +16,7 @@ from .api.schema import VehicleStatus
 
 from . import DomainData
 from .const import DOMAIN
-from .coordinator import NissanBaseEntity, NissanDataUpdateCoordinator
+from .coordinator import NissanCoordinatorEntity, NissanDataUpdateCoordinator
 
 
 async def async_setup_entry(
@@ -36,7 +36,7 @@ TIRE_SENSOR_TYPES = {
     'rrPressure': 'Rear Right Tire Pressure',
 }
 
-class NissanTirePressureSensor(NissanBaseEntity[VehicleStatus], SensorEntity):
+class NissanTirePressureSensor(NissanCoordinatorEntity[VehicleStatus], SensorEntity):
     """Nissan tire pressure sensor."""
 
     def __init__(self, coordinator: NissanDataUpdateCoordinator[VehicleStatus], key: str, name: str) -> None:

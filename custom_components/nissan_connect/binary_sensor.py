@@ -14,7 +14,7 @@ from .api.schema import DoorState, VehicleStatus
 
 from . import DomainData
 from .const import DOMAIN
-from .coordinator import NissanBaseEntity, NissanDataUpdateCoordinator
+from .coordinator import NissanCoordinatorEntity, NissanDataUpdateCoordinator
 
 
 async def async_setup_entry(
@@ -24,10 +24,10 @@ async def async_setup_entry(
 ) -> None:
     """Set up the Nissan tracker from config entry."""
     data: DomainData = hass.data[DOMAIN][config_entry.entry_id]
-    async_add_entities([NissanBinarySensor(data.status, item) for item in BINARY_SENSORS])
+    async_add_entities([NissanBinarySensor(data.status, sensor) for sensor in BINARY_SENSORS])
 
 
-BINARY_SENSORS = [
+BINARY_SENSORS: list[BinarySensorEntityDescription] = [
     BinarySensorEntityDescription(
         key='doorStatusFrontLeft',
         name='Front Left Door',
@@ -66,7 +66,7 @@ BINARY_SENSORS = [
     ),
 ]
 
-class NissanBinarySensor(NissanBaseEntity[VehicleStatus], BinarySensorEntity):
+class NissanBinarySensor(NissanCoordinatorEntity[VehicleStatus], BinarySensorEntity):
     """Nissan door sensor."""
 
     def __init__(

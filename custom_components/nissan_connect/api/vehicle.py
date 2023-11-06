@@ -14,6 +14,7 @@ from .schema import (
 	VehicleStatus,
 )
 
+RequestStatusTracker = Callable[[], RequestStatus]
 JSON = dict[str, 'JSON'] | list['JSON'] | int | str | float | bool | type[None]
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class Vehicle():
 		_LOGGER.debug(f'Service "{service.name}" response: {r}')
 		return r
 
-	def send_command(self, command: RemoteCommand, pin: str = '') -> Callable[[], RequestStatus]:
+	def send_command(self, command: RemoteCommand, pin: str = '') -> RequestStatusTracker:
 		data = {'command': str(command)}
 		if pin:
 			data['pin'] = pin
