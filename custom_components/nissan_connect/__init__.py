@@ -24,7 +24,7 @@ from .coordinator import NissanDataUpdateCoordinator
 
 PLATFORMS = [
     Platform.BINARY_SENSOR,
-    # Platform.BUTTON,
+    Platform.BUTTON,
     Platform.SENSOR,
     Platform.LOCK,
     Platform.DEVICE_TRACKER,
