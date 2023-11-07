@@ -1,10 +1,15 @@
 from typing import Any
 from abc import ABC, abstractmethod
+from homeassistant.helpers import config_validation as cv
 
 import voluptuous as vol
 
 from homeassistant import config_entries, core, exceptions
-from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
+from homeassistant.const import (
+    CONF_USERNAME,
+    CONF_PASSWORD,
+    CONF_PIN,
+)
 from homeassistant.data_entry_flow import (
     FlowHandler,
     FlowResult,
@@ -19,6 +24,7 @@ DATA_SCHEMA = vol.Schema({
     vol.Required(CONF_USERNAME): str,
     vol.Required(CONF_PASSWORD): str,
     vol.Required(CONF_VIN): str,
+    vol.Required(CONF_PIN): str,
 })
 
 
@@ -63,6 +69,7 @@ class BaseFlow(FlowHandler, ABC):
                 return await self.async_save_entry(
                     data={
                         CONF_VIN: user_input[CONF_VIN],
+                        CONF_PIN: user_input[CONF_PIN],
                         CONF_TOKEN: token,
                     },
                 )

@@ -20,9 +20,17 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class Vehicle():
-	def __init__(self, auth: Auth, vin: str, *, base_url: str=BASE_URL):
+	def __init__(
+		self,
+		auth: Auth,
+		vin: str,
+		*,
+		pin: str = '',
+		base_url: str=BASE_URL
+	):
 		self.base_url = base_url
 		self.vin = vin
+		self.pin = pin
 		self.session = Session()
 		self.session.auth = auth
 		self.session.headers.update({
@@ -34,10 +42,10 @@ class Vehicle():
 		_LOGGER.debug(f'Service "{service.name}" response: {r}')
 		return r
 
-	def send_command(self, command: RemoteCommand, pin: str = '') -> RequestStatusTracker:
+	def send_command(self, command: RemoteCommand) -> RequestStatusTracker:
 		data = {'command': str(command)}
-		if pin:
-			data['pin'] = pin
+		if self.pin:
+			data['pin'] = self.pin
 
 		r = self.session.post(f'{self.base_url}/{command.service.value}', json=data).json()
 		_LOGGER.debug(f'Service "{command.service.name}::{command.name}" response: {r}')
@@ -66,26 +74,26 @@ class Vehicle():
 			self.get_status(Service.SERVICE_HISTORY)
 		)
 
-	def door_lock(self, pin: str = '') -> Callable[[], RequestStatus]:
-		return self.send_command(RemoteCommand.LOCK, pin)
+	def door_lock(self) -> RequestStatusTracker:
+		return self.send_command(RemoteCommand.LOCK)
 
-	def door_unlock(self, pin: str = '') -> Callable[[], RequestStatus]:
-		return self.send_command(RemoteCommand.UNLOCK, pin)
+	def door_unlock(self) -> RequestStatusTracker:
+		return self.send_command(RemoteCommand.UNLOCK)
 
-	def engine_start(self, pin: str = '') -> Callable[[], RequestStatus]:
-		return self.send_command(RemoteCommand.START, pin)
+	def engine_start(self) -> RequestStatusTracker:
+		return self.send_command(RemoteCommand.START)
 
-	def engine_stop(self, pin: str = '') -> Callable[[], RequestStatus]:
-		return self.send_command(RemoteCommand.STOP, pin)
+	def engine_stop(self) -> RequestStatusTracker:
+		return self.send_command(RemoteCommand.STOP)
 
-	def engine_double_start(self, pin: str = '') -> Callable[[], RequestStatus]:
-		return self.send_command(RemoteCommand.DOUBLE_START, pin)
+	def engine_double_start(self) -> RequestStatusTracker:
+		return self.send_command(RemoteCommand.DOUBLE_START)
 
-	def horn(self, pin: str = '') -> Callable[[], RequestStatus]:
-		return self.send_command(RemoteCommand.HORN_ONLY, pin)
+	def horn(self) -> RequestStatusTracker:
+		return self.send_command(RemoteCommand.HORN_ONLY)
 
-	def lights(self, pin: str = '') -> Callable[[], RequestStatus]:
-		return self.send_command(RemoteCommand.LIGHT_ONLY, pin)
+	def lights(self) -> RequestStatusTracker:
+		return self.send_command(RemoteCommand.LIGHT_ONLY)
 
-	def horn_and_lights(self, pin: str = '') -> Callable[[], RequestStatus]:
-		return self.send_command(RemoteCommand.HORN_LIGHT, pin)
+	def horn_and_lights(self) -> RequestStatusTracker:
+		return self.send_command(RemoteCommand.HORN_LIGHT)

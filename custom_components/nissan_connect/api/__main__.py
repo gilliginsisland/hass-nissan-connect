@@ -31,10 +31,10 @@ def main():
 	auth = Auth()
 	auth.fetch_token(args.username, args.password)
 
-	vehicle = Vehicle(auth, args.vin)
+	vehicle = Vehicle(auth, args.vin, pin=args.pin)
 	if getattr(args, 'command', None):
 		command = RemoteCommand[args.command.upper()]
-		r = vehicle.send_command(command, args.pin)()
+		r = vehicle.send_command(command)()
 	else:
 		service = Service[args.service.upper()]
 		r = vehicle.get_status(service)

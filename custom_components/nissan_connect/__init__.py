@@ -5,7 +5,7 @@ import functools as ft
 from dataclasses import dataclass
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform, __version__
+from homeassistant.const import CONF_PIN, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.typing import ConfigType
@@ -46,7 +46,7 @@ async def async_setup(hass: HomeAssistant, _: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     auth = Auth(token_storage=TokenStorage(hass, entry))
-    vehicle = Vehicle(auth, entry.data[CONF_VIN])
+    vehicle = Vehicle(auth, entry.data[CONF_VIN], pin=entry.data[CONF_PIN])
 
     # Setup the coordinator and set up all platforms
     data = DomainData(

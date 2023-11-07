@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import functools as ft
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -95,9 +96,9 @@ class NissanButton(NissanEntityMixin, ButtonEntity):
 
     async def async_press(self) -> None:
         """Press the button."""
-        await self._async_follow_request(
-            self.vehicle.send_command(
+        await self._async_send_command(
+            ft.partial(
+                self.vehicle.send_command,
                 self.entity_description.remote_service,
-                pin='',
-            )
+            ),
         )
