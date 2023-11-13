@@ -58,12 +58,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass, vehicle=vehicle, method=Vehicle.vehicle_status,
         ),
     )
+
+    hass.data[DOMAIN][entry.entry_id] = data
+
     await asyncio.gather(
         data.location.async_config_entry_first_refresh(),
         data.status.async_config_entry_first_refresh(),
     )
-
-    hass.data[DOMAIN][entry.entry_id] = data
 
     device_registry = dr.async_get(hass)
     device_registry.async_get_or_create(
