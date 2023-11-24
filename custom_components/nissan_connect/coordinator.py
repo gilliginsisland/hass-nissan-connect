@@ -61,6 +61,10 @@ class NissanEntityMixin(Entity):
         super().__init__(*args, **kwargs)
 
     @property
+    def has_entity_name(self) -> bool:
+        return True
+
+    @property
     def attribution(self) -> str:
         return ATTRIBUTION
 

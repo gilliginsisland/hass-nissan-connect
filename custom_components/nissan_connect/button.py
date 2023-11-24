@@ -39,42 +39,42 @@ class NissanButtonEntityDescription(ButtonEntityDescription, NissanRequiredKeysM
 BUTTON_TYPES: list[NissanButtonEntityDescription] = [
     NissanButtonEntityDescription(
         key=RemoteCommand.LOCK.name,
-        name='Lock',
+        name='Remote Lock',
         remote_service=RemoteCommand.LOCK,
     ),
     NissanButtonEntityDescription(
         key=RemoteCommand.UNLOCK.name,
-        name='Unlock',
+        name='Remote Unlock',
         remote_service=RemoteCommand.UNLOCK,
     ),
     NissanButtonEntityDescription(
         key=RemoteCommand.START.name,
-        name='Start',
+        name='Remote Start',
         remote_service=RemoteCommand.START,
     ),
     NissanButtonEntityDescription(
         key=RemoteCommand.STOP.name,
-        name='Stop',
+        name='Remote Stop',
         remote_service=RemoteCommand.STOP,
     ),
     NissanButtonEntityDescription(
         key=RemoteCommand.DOUBLE_START.name,
-        name='DoubleStart',
+        name='Remote Double Start',
         remote_service=RemoteCommand.DOUBLE_START,
     ),
     NissanButtonEntityDescription(
         key=RemoteCommand.HORN_ONLY.name,
-        name='Horn',
+        name='Remote Horn',
         remote_service=RemoteCommand.HORN_ONLY,
     ),
     NissanButtonEntityDescription(
         key=RemoteCommand.LIGHT_ONLY.name,
-        name='Lights',
+        name='Remote Lights',
         remote_service=RemoteCommand.LIGHT_ONLY,
     ),
     NissanButtonEntityDescription(
         key=RemoteCommand.HORN_LIGHT.name,
-        name='HornLights',
+        name='Remote Horn Lights',
         remote_service=RemoteCommand.HORN_LIGHT,
     ),
 ]
