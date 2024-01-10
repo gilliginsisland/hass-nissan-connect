@@ -43,12 +43,12 @@ class NissanLock(NissanCoordinatorEntity[VehicleStatus], LockEntity):
     def is_unlocking(self) -> bool:
         return self._current_command == self.vehicle.door_unlock
 
-    async def async_lock(self) -> None:
+    async def async_lock(self, **kwargs) -> None:
         self.hass.create_task(
             self._async_send_command(self.vehicle.door_lock)
         )
 
-    async def async_unlock(self) -> None:
+    async def async_unlock(self, **kwargs) -> None:
         self.hass.create_task(
             self._async_send_command(self.vehicle.door_unlock)
         )

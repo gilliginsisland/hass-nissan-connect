@@ -4,8 +4,8 @@ import logging
 from pydantic import parse_obj_as
 from requests import Session
 
-from .const import BASE_URL
-from .auth import Auth
+from .const import CV_BASE_URL
+from .auth import TokenAuth
 from .schema import (
 	RemoteCommand,
 	Service,
@@ -22,11 +22,11 @@ _LOGGER = logging.getLogger(__name__)
 class Vehicle():
 	def __init__(
 		self,
-		auth: Auth,
+		auth: TokenAuth,
 		vin: str,
 		*,
 		pin: str = '',
-		base_url: str=BASE_URL
+		base_url: str=CV_BASE_URL
 	):
 		self.base_url = base_url
 		self.vin = vin

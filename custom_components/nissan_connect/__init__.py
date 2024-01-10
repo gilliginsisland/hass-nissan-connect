@@ -11,7 +11,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util.async_ import run_callback_threadsafe
 
-from .api.auth import Auth, Token
+from .api.auth import TokenAuth, Token
 from .api.vehicle import Vehicle
 from .api.schema import LocationStatus, VehicleStatus
 
@@ -45,7 +45,7 @@ async def async_setup(hass: HomeAssistant, _: ConfigType) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    auth = Auth(token_storage=TokenStorage(hass, entry))
+    auth = TokenAuth(token_storage=TokenStorage(hass, entry))
     vehicle = Vehicle(auth, entry.data[CONF_VIN], pin=entry.data[CONF_PIN])
 
     # Setup the coordinator and set up all platforms
