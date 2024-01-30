@@ -1,6 +1,6 @@
 """Coordinator for Nissan."""
 from __future__ import annotations
-from typing import Any, Callable, Generic, TypeVar
+from typing import Callable, Generic, TypeVar
 import logging
 import functools as ft
 from datetime import timedelta

@@ -14,7 +14,7 @@ from .api.schema import DoorState, VehicleStatus
 
 from . import DomainData
 from .const import DOMAIN
-from .coordinator import NissanCoordinatorEntity, NissanDataUpdateCoordinator
+from .coordinator import NissanCoordinatorEntity
 
 
 async def async_setup_entry(
@@ -24,10 +24,18 @@ async def async_setup_entry(
 ) -> None:
     """Set up the Nissan tracker from config entry."""
     data: DomainData = hass.data[DOMAIN][config_entry.entry_id]
-    async_add_entities([NissanLockSensor(data.status, sensor) for sensor in LOCK_SENSORS])
+
+    sensor_types = (
+        (NissanLockSensor, LOCK_SENSORS),
+        (NissanMalfunctionIndicatorLamp, MALFUNCTION_SENSORS),
+    )
+
+    async_add_entities(
+        [cls(data.status, sensor) for (cls, sensors) in sensor_types for sensor in sensors]
+    )
 
 
-LOCK_SENSORS: list[BinarySensorEntityDescription] = [
+LOCK_SENSORS: tuple[BinarySensorEntityDescription, ...] = (
     BinarySensorEntityDescription(
         key='doorStatusFrontLeft',
         name='Front Left Door',
@@ -64,12 +72,71 @@ LOCK_SENSORS: list[BinarySensorEntityDescription] = [
         icon='mdi:car-back',
         device_class=BinarySensorDeviceClass.OPENING,
     ),
-]
+)
 
-class NissanLockSensor(NissanCoordinatorEntity[BinarySensorEntityDescription, VehicleStatus], BinarySensorEntity):
+MALFUNCTION_SENSORS: tuple[BinarySensorEntityDescription, ...] = (
+    BinarySensorEntityDescription(
+        key='absWarning',
+        name='ABS Warning',
+        icon='mdi:car-brake-abs',
+        device_class=BinarySensorDeviceClass.PROBLEM,
+    ),
+    BinarySensorEntityDescription(
+        key='airbagWarning',
+        name='AirBag Warning',
+        icon='mdi:airbag',
+        device_class=BinarySensorDeviceClass.PROBLEM,
+    ),
+    BinarySensorEntityDescription(
+        key='brakeFluidWarning',
+        name='Break Fluid Warning',
+        icon='mdi:car-brake-fluid-level',
+        device_class=BinarySensorDeviceClass.PROBLEM,
+    ),
+    BinarySensorEntityDescription(
+        key='oilPressureWarning',
+        name='Oil Pressure Warning',
+        icon='mdi:car-brake-low-pressure',
+        device_class=BinarySensorDeviceClass.PROBLEM,
+    ),
+    BinarySensorEntityDescription(
+        key='tyrePressureWarning',
+        name='Tire Pressure Warning',
+        icon='mdi:car-tire-alert',
+        device_class=BinarySensorDeviceClass.PROBLEM,
+    ),
+    BinarySensorEntityDescription(
+        key='oilPressureSwitch',
+        name='Oil Pressure Switch',
+        icon='mdi:car-emergency',
+        device_class=BinarySensorDeviceClass.PROBLEM,
+    ),
+    BinarySensorEntityDescription(
+        key='lampRequest',
+        name='Lamp Request',
+        icon='mdi:oil-lamp',
+        device_class=BinarySensorDeviceClass.PROBLEM,
+    ),
+)
+
+
+class NissanLockSensor(
+    NissanCoordinatorEntity[BinarySensorEntityDescription, VehicleStatus],
+    BinarySensorEntity
+):
     """Nissan door sensor."""
 
     @property
-    def is_on(self) -> bool | None:
-        state: DoorState = self.data.lockStatus[self.entity_description.key]
-        return state == DoorState.OPEN
+    def is_on(self) -> bool:
+        return self.data.lockStatus[self.entity_description.key] == DoorState.OPEN
+
+
+class NissanMalfunctionIndicatorLamp(
+    NissanCoordinatorEntity[BinarySensorEntityDescription, VehicleStatus],
+    BinarySensorEntity
+):
+    """Nissan malfunction indicator lamp sensor."""
+
+    @property
+    def is_on(self) -> bool:
+        return self.data.healthStatus.malfunctionIndicatorLamps[self.entity_description.key]
