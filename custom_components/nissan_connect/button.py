@@ -24,14 +24,14 @@ async def async_setup_entry(
     async_add_entities([NissanButton(data.vehicle, button) for button in BUTTON_TYPES])
 
 
-@dataclass
+@dataclass(frozen=True)
 class NissanRequiredKeysMixin:
     """Mixin for required keys."""
 
     remote_service: RemoteCommand
 
 
-@dataclass
+@dataclass(frozen=True)
 class NissanButtonEntityDescription(ButtonEntityDescription, NissanRequiredKeysMixin):
     """Class describing Nissan button entities."""
 
@@ -80,25 +80,14 @@ BUTTON_TYPES: list[NissanButtonEntityDescription] = [
 ]
 
 
-class NissanButton(NissanEntityMixin, ButtonEntity):
-    """Representation of a MyBMW button."""
-
-    entity_description: NissanButtonEntityDescription
-
-    def __init__(
-        self,
-        vehicle: Vehicle,
-        description: NissanButtonEntityDescription,
-    ) -> None:
-        """Initialize Nissan vehicle button."""
-        self.entity_description = description
-        super().__init__(vehicle)
+class NissanButton(NissanEntityMixin[NissanButtonEntityDescription], ButtonEntity):
+    """Representation of a NissanConnect button."""
 
     async def async_press(self) -> None:
         """Press the button."""
         await self._async_send_command(
             ft.partial(
-                self.vehicle.send_command,
+                self._vehicle.send_command,
                 self.entity_description.remote_service,
             ),
         )

@@ -26,29 +26,28 @@ async def async_setup_entry(
 ) -> None:
     """Set up the Nissan tracker from config entry."""
     data: DomainData = hass.data[DOMAIN][config_entry.entry_id]
-    async_add_entities([NissanTirePressureSensor(data.status, key, name) for key, name in TIRE_SENSOR_TYPES.items()])
+    async_add_entities([NissanTirePressureSensor(data.status, sensor) for sensor in TIRE_SENSOR_TYPES])
 
 
-TIRE_SENSOR_TYPES = {
+TIRE_TYPES = {
     'flPressure': 'Front Left Tire Pressure',
     'frPressure': 'Front Right Tire Pressure',
     'rlPressure': 'Rear Left Tire Pressure',
     'rrPressure': 'Rear Right Tire Pressure',
 }
 
-class NissanTirePressureSensor(NissanCoordinatorEntity[VehicleStatus], SensorEntity):
+TIRE_SENSOR_TYPES = {
+    SensorEntityDescription(
+        key=key, name=value, icon='mdi:tire',
+        device_class=SensorDeviceClass.PRESSURE,
+        native_unit_of_measurement=UnitOfPressure.PSI,
+        state_class=SensorStateClass.MEASUREMENT,
+    ) for key, value in TIRE_TYPES.items()
+}
+
+
+class NissanTirePressureSensor(NissanCoordinatorEntity[SensorEntityDescription, VehicleStatus], SensorEntity):
     """Nissan tire pressure sensor."""
-
-    def __init__(self, coordinator: NissanDataUpdateCoordinator[VehicleStatus], key: str, name: str) -> None:
-        """Initialize the Tracker."""
-        super().__init__(coordinator)
-
-        self.entity_description = SensorEntityDescription(
-            key=key, name=name, icon='mdi:tire',
-            device_class=SensorDeviceClass.PRESSURE,
-            native_unit_of_measurement=UnitOfPressure.PSI,
-            state_class=SensorStateClass.MEASUREMENT,
-        )
 
     @property
     def native_value(self) -> int:

@@ -21,19 +21,20 @@ async def async_setup_entry(
 ) -> None:
     """Set up the Nissan tracker from config entry."""
     data: DomainData = hass.data[DOMAIN][config_entry.entry_id]
-    async_add_entities([NissanDeviceTracker(data.location)])
+    async_add_entities([NissanDeviceTracker(data.location, tracker) for tracker in TRACKER_TYPES])
 
 
-class NissanDeviceTracker(NissanCoordinatorEntity[LocationStatus], TrackerEntity):
+TRACKER_TYPES = [
+    EntityDescription(
+        key='vehicle_location',
+        name='Location',
+        icon='mdi:car',
+    )
+]
+
+
+class NissanDeviceTracker(NissanCoordinatorEntity[EntityDescription, LocationStatus], TrackerEntity):
     """Nissan device tracker."""
-
-    def __init__(self, coordinator: NissanDataUpdateCoordinator[LocationStatus]) -> None:
-        """Initialize the Tracker."""
-        super().__init__(coordinator)
-
-        self.entity_description = EntityDescription(
-            key='vehicle_location', name='Location', icon='mdi:car',
-        )
 
     @property
     def latitude(self) -> float | None:
