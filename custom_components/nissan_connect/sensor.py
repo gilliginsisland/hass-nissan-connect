@@ -16,7 +16,7 @@ from .api.schema import VehicleStatus
 
 from . import DomainData
 from .const import DOMAIN
-from .coordinator import NissanCoordinatorEntity, NissanDataUpdateCoordinator
+from .coordinator import NissanCoordinatorEntity
 
 
 async def async_setup_entry(

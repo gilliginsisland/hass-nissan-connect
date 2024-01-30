@@ -6,7 +6,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
 
-from .api.vehicle import Vehicle
 from .api.schema import RemoteCommand
 
 from . import DomainData
@@ -24,16 +23,11 @@ async def async_setup_entry(
     async_add_entities([NissanButton(data.vehicle, button) for button in BUTTON_TYPES])
 
 
-@dataclass(frozen=True)
-class NissanRequiredKeysMixin:
-    """Mixin for required keys."""
+@dataclass(frozen=True, kw_only=True)
+class NissanButtonEntityDescription(ButtonEntityDescription):
+    """Class describing Nissan button entities."""
 
     remote_service: RemoteCommand
-
-
-@dataclass(frozen=True)
-class NissanButtonEntityDescription(ButtonEntityDescription, NissanRequiredKeysMixin):
-    """Class describing Nissan button entities."""
 
 
 BUTTON_TYPES: list[NissanButtonEntityDescription] = [
