@@ -1,13 +1,13 @@
 """Coordinator for Nissan."""
 from __future__ import annotations
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, Generic, TypeVar
 import logging
 import functools as ft
 from datetime import timedelta
 import asyncio
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo, Entity
+from homeassistant.helpers.entity import DeviceInfo, Entity, EntityDescription
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     CoordinatorEntity,
@@ -26,6 +26,10 @@ _LOGGER = logging.getLogger(__name__)
 _SCAN_INTERVAL = timedelta(minutes=5)
 
 _T = TypeVar("_T")
+_EntityDescriptionT = TypeVar(
+    "_EntityDescriptionT", bound=EntityDescription
+)
+_RemoteCallable = Callable[[], RequestStatusTracker]
 
 
 class NissanDataUpdateCoordinator(DataUpdateCoordinator[_T]):
@@ -38,7 +42,7 @@ class NissanDataUpdateCoordinator(DataUpdateCoordinator[_T]):
         method: Callable[[Vehicle], _T],
     ) -> None:
         """Initialize vehicle-wide Nissan data updater."""
-        self._method = ft.partial(hass.async_add_executor_job, method)
+        self._update_method = ft.partial(hass.async_add_executor_job, method)
         self.vehicle = vehicle
         name=f'{type(self).__name__} {vehicle.vin}'
         super().__init__(hass, _LOGGER, name=name, update_interval=_SCAN_INTERVAL)
@@ -46,47 +50,43 @@ class NissanDataUpdateCoordinator(DataUpdateCoordinator[_T]):
     async def _async_update_data(self) -> _T:
         """Update data."""
         try:
-            return await self._method(self.vehicle)
+            return await self._update_method(self.vehicle)
         except Exception as err:
             raise UpdateFailed() from err
 
 
-class NissanEntityMixin(Entity):
+class NissanEntityMixin(Entity, Generic[_EntityDescriptionT]):
     """Common base for all Nissan entities."""
 
-    def __init__(self, vehicle: Vehicle, *args, **kwargs) -> None:
+    _attr_has_entity_name = True
+    _attr_name = None
+    _attr_attribution = ATTRIBUTION
+
+    entity_description: _EntityDescriptionT
+
+    def __init__(
+        self,
+        vehicle: Vehicle,
+        entity_description: _EntityDescriptionT,
+        *args,
+        **kwargs
+    ) -> None:
         """Initialize entity."""
+
         self._vehicle = vehicle
-        self._current_command: Callable[[], RequestStatusTracker] | None = None
-        super().__init__(*args, **kwargs)
+        self._current_command: _RemoteCallable | None = None
 
-    @property
-    def has_entity_name(self) -> bool:
-        return True
-
-    @property
-    def attribution(self) -> str:
-        return ATTRIBUTION
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        return {
-            "vin": self.vehicle.vin,
+        self._attr_extra_state_attributes = {
+            "vin": vehicle.vin,
         }
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        return DeviceInfo(
-            identifiers={(DOMAIN, self.vehicle.vin)},
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, vehicle.vin)},
         )
+        self._attr_unique_id = f'{vehicle.vin}_{entity_description.key}'
 
-    @property
-    def unique_id(self) -> str:
-        return f'{self.vehicle.vin}_{self.entity_description.key}'
+        self.entity_description = entity_description
 
-    @property
-    def vehicle(self) -> Vehicle:
-        return self._vehicle
+        super().__init__(*args, **kwargs)
 
     async def _async_follow_request(
         self, status_tracker: RequestStatusTracker, delay: int = 2
@@ -97,28 +97,38 @@ class NissanEntityMixin(Entity):
             if r.status != RequestState.INITIATED:
                 return r
 
-    async def _async_send_command(
-        self, command: Callable[[], RequestStatusTracker]
-    ) -> RequestStatus:
+    async def _async_send_command(self, command: _RemoteCallable) -> RequestStatus:
+        await self._async_pre_send_command(command)
         try:
-            self._current_command = command
-            self.async_write_ha_state()
             return await self._async_follow_request(
                 await self.hass.async_add_executor_job(command)
             )
         finally:
-            if isinstance(self, CoordinatorEntity):
-                await self.coordinator.async_request_refresh()
-            self._current_command = None
-            self.async_write_ha_state()
+            await self._async_post_send_command(command)
+
+    async def _async_pre_send_command(self, command: _RemoteCallable) -> None:
+        self._current_command = command
+        self.async_write_ha_state()
+
+    async def _async_post_send_command(self, command: _RemoteCallable) -> None:
+        self._current_command = None
+        self.async_write_ha_state()
 
 
-class NissanCoordinatorEntity(NissanEntityMixin, CoordinatorEntity[NissanDataUpdateCoordinator[_T]]):
+class NissanCoordinatorEntity(NissanEntityMixin[_EntityDescriptionT], CoordinatorEntity[NissanDataUpdateCoordinator[_T]]):
     """Common base for Nissan coordinator entities."""
 
-    def __init__(self, coordinator: NissanDataUpdateCoordinator[_T]) -> None:
+    def __init__(
+        self,
+        coordinator: NissanDataUpdateCoordinator[_T],
+        entity_description: _EntityDescriptionT,
+    ) -> None:
         """Initialize entity."""
-        super().__init__(coordinator.vehicle, coordinator)
+        super().__init__(coordinator.vehicle, entity_description, coordinator)
+
+    async def _async_post_send_command(self, command: _RemoteCallable) -> None:
+        await self.coordinator.async_request_refresh()
+        return await super()._async_post_send_command(command)
 
     @property
     def data(self) -> _T:

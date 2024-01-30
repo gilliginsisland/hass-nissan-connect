@@ -24,10 +24,10 @@ async def async_setup_entry(
 ) -> None:
     """Set up the Nissan tracker from config entry."""
     data: DomainData = hass.data[DOMAIN][config_entry.entry_id]
-    async_add_entities([NissanBinarySensor(data.status, sensor) for sensor in BINARY_SENSORS])
+    async_add_entities([NissanLockSensor(data.status, sensor) for sensor in LOCK_SENSORS])
 
 
-BINARY_SENSORS: list[BinarySensorEntityDescription] = [
+LOCK_SENSORS: list[BinarySensorEntityDescription] = [
     BinarySensorEntityDescription(
         key='doorStatusFrontLeft',
         name='Front Left Door',
@@ -66,18 +66,8 @@ BINARY_SENSORS: list[BinarySensorEntityDescription] = [
     ),
 ]
 
-class NissanBinarySensor(NissanCoordinatorEntity[VehicleStatus], BinarySensorEntity):
+class NissanLockSensor(NissanCoordinatorEntity[BinarySensorEntityDescription, VehicleStatus], BinarySensorEntity):
     """Nissan door sensor."""
-
-    def __init__(
-        self,
-        coordinator: NissanDataUpdateCoordinator[VehicleStatus],
-        description: BinarySensorEntityDescription,
-    ) -> None:
-        """Initialize the Tracker."""
-        super().__init__(coordinator)
-
-        self.entity_description = description
 
     @property
     def is_on(self) -> bool | None:
