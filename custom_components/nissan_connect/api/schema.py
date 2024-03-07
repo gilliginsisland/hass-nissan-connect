@@ -1,4 +1,3 @@
-from typing import Optional
 from enum import StrEnum
 from datetime import datetime
 from pydantic import BaseModel
@@ -12,67 +11,82 @@ class Service(StrEnum):
 	LOCATION = 'telemetry/location'
 	VEHICLE_STATUS = 'telemetry/vehiclestatus'
 
-class _ServiceEnum(StrEnum):
-	def __new__(cls, service, *_):
-		value = str(service)
-		member = str.__new__(cls, value)
-		member._value_ = value
-		return member
+class ServiceType(StrEnum):
+	REMOTE_DOOR_LOCK = 'REMOTE_DOOR_LOCK'
+	REMOTE_DOOR_UNLOCK = 'REMOTE_DOOR_UNLOCK'
+	REMOTE_START = 'REMOTE_START'
+	REMOTE_ENGINE = 'REMOTE_ENGINE'
+	VEHICLE_LOCATOR = 'VEHICLE_LOCATOR'
+	REMOTE_HORNBLOW_LIGHTFLASH = 'REMOTE_HORNBLOW_LIGHTFLASH'
+	PERSONAL_DATA_WIPE = 'PERSONAL_DATA_WIPE'
+	VEHICLE_HEALTH_REPORT = 'VEHICLE_HEALTH_REPORT'
+	POI = 'POI'
+	RECALL_CAMPAIGN_ADVISOR = 'RECALL_CAMPAIGN_ADVISOR'
+	PANIC_ALERT = 'PANIC_ALERT'
+	AUTO_DTC_ALERT = 'AUTO_DTC_ALERT'
+	MAINTAINENCE_ALERT = 'MAINTAINENCE_ALERT'
+	STOLEN_VEHICLE_TRACKER = 'STOLEN_VEHICLE_TRACKER'
+	GEOFENCE = 'GEOFENCE'
+	VALET = 'VALET'
+	SPEED = 'SPEED'
+	CURFEW = 'CURFEW'
+	DAILY_ROUTE_GUIDANCE = 'DAILY_ROUTE_GUIDANCE'
+	ACN = 'ACN'
+	SOS = 'SOS'
+	ENHANCED_ROADSIDE_ASSISTANCE = 'ENHANCED_ROADSIDE_ASSISTANCE'
+	VEHICLE_IMMOBILIZATION = 'VEHICLE_IMMOBILIZATION'
+	ALARM_NOTIFICATION = 'ALARM_NOTIFICATION'
+	ECO_COACH = 'ECO_COACH'
+	POI_VIA_IVR = 'POI_VIA_IVR'
+	SERVICE_LINK = 'SERVICE_LINK'
+	WEATHER = 'WEATHER'
+	TRAFFIC_FLOW = 'TRAFFIC_FLOW'
+	TURN_BY_TURN_NAVIGATION = 'TURN_BY_TURN_NAVIGATION'
+	RESTAURANT_RATING = 'RESTAURANT_RATING'
+	GAS_PRICE_LOCATOR = 'GAS_PRICE_LOCATOR'
+	LOCATION_SHARING = 'LOCATION_SHARING'
 
-	def __init__(self, _: str, service: Service):
-		self._service_ = service
+	@property
+	def service(self) -> Service | None:
+		return _service_type_service_map[self]
+
+_service_type_service_map: dict[ServiceType,Service] = {
+	ServiceType.REMOTE_DOOR_LOCK:  Service.DOOR,
+	ServiceType.REMOTE_DOOR_UNLOCK:  Service.DOOR,
+	ServiceType.REMOTE_START:  Service.ENGINE,
+	ServiceType.REMOTE_ENGINE:  Service.ENGINE,
+	ServiceType.VEHICLE_LOCATOR:  Service.LOCATION,
+	ServiceType.REMOTE_HORNBLOW_LIGHTFLASH:  Service.HORN_AND_LIGHTS,
+}
+
+class RemoteCommand(StrEnum):
+	LOCK = 'LOCK'
+	UNLOCK = 'UNLOCK'
+	STOP = 'STOP'
+	REMOTE_STOP = 'STOP'
+	START = 'START'
+	REMOTE_START = 'START'
+	DOUBLE_START = 'DOUBLE_START'
+	LIGHT_ONLY = 'LIGHT_ONLY'
+	HORN_LIGHT = 'HORN_LIGHT'
+	HORN_ONLY = 'HORN_ONLY'
 
 	@property
 	def service(self) -> Service:
-		return self._service_
+		return _remote_command_service_map[self]
 
-class ServiceType(_ServiceEnum):
-	service_type = '', None
-	REMOTE_DOOR_LOCK = 'REMOTE_DOOR_LOCK', Service.DOOR
-	REMOTE_DOOR_UNLOCK = 'REMOTE_DOOR_UNLOCK', Service.DOOR
-	REMOTE_START = 'REMOTE_START', Service.ENGINE
-	REMOTE_ENGINE = 'REMOTE_ENGINE', Service.ENGINE
-	VEHICLE_LOCATOR = 'VEHICLE_LOCATOR', Service.LOCATION
-	REMOTE_HORNBLOW_LIGHTFLASH = 'REMOTE_HORNBLOW_LIGHTFLASH', Service.HORN_AND_LIGHTS
-	PERSONAL_DATA_WIPE = 'PERSONAL_DATA_WIPE', None
-	VEHICLE_HEALTH_REPORT = 'VEHICLE_HEALTH_REPORT', None
-	POI = 'POI', None
-	RECALL_CAMPAIGN_ADVISOR = 'RECALL_CAMPAIGN_ADVISOR', None
-	PANIC_ALERT = 'PANIC_ALERT', None
-	AUTO_DTC_ALERT = 'AUTO_DTC_ALERT', None
-	MAINTAINENCE_ALERT = 'MAINTAINENCE_ALERT', None
-	STOLEN_VEHICLE_TRACKER = 'STOLEN_VEHICLE_TRACKER', None
-	GEOFENCE = 'GEOFENCE', None
-	VALET = 'VALET', None
-	SPEED = 'SPEED', None
-	CURFEW = 'CURFEW', None
-	DAILY_ROUTE_GUIDANCE = 'DAILY_ROUTE_GUIDANCE', None
-	ACN = 'ACN', None
-	SOS = 'SOS', None
-	ENHANCED_ROADSIDE_ASSISTANCE = 'ENHANCED_ROADSIDE_ASSISTANCE', None
-	VEHICLE_IMMOBILIZATION = 'VEHICLE_IMMOBILIZATION', None
-	ALARM_NOTIFICATION = 'ALARM_NOTIFICATION', None
-	ECO_COACH = 'ECO_COACH', None
-	POI_VIA_IVR = 'POI_VIA_IVR', None
-	SERVICE_LINK = 'SERVICE_LINK', None
-	WEATHER = 'WEATHER', None
-	TRAFFIC_FLOW = 'TRAFFIC_FLOW', None
-	TURN_BY_TURN_NAVIGATION = 'TURN_BY_TURN_NAVIGATION', None
-	RESTAURANT_RATING = 'RESTAURANT_RATING', None
-	GAS_PRICE_LOCATOR = 'GAS_PRICE_LOCATOR', None
-	LOCATION_SHARING = 'LOCATION_SHARING', None
-
-class RemoteCommand(_ServiceEnum):
-	LOCK = 'LOCK', Service.DOOR
-	UNLOCK = 'UNLOCK', Service.DOOR
-	STOP = 'STOP', Service.ENGINE
-	REMOTE_STOP = STOP
-	START = 'START', Service.ENGINE
-	REMOTE_START = START
-	DOUBLE_START = 'DOUBLE_START', Service.ENGINE
-	LIGHT_ONLY = 'LIGHT_ONLY', Service.HORN_AND_LIGHTS
-	HORN_LIGHT = 'HORN_LIGHT', Service.HORN_AND_LIGHTS
-	HORN_ONLY = 'HORN_ONLY', Service.HORN_AND_LIGHTS
+_remote_command_service_map: dict[RemoteCommand,Service] = {
+	RemoteCommand.LOCK: Service.DOOR,
+	RemoteCommand.UNLOCK: Service.DOOR,
+	RemoteCommand.STOP: Service.ENGINE,
+	RemoteCommand.REMOTE_STOP: Service.ENGINE,
+	RemoteCommand.START: Service.ENGINE,
+	RemoteCommand.REMOTE_START: Service.ENGINE,
+	RemoteCommand.DOUBLE_START: Service.ENGINE,
+	RemoteCommand.LIGHT_ONLY: Service.HORN_AND_LIGHTS,
+	RemoteCommand.HORN_LIGHT: Service.HORN_AND_LIGHTS,
+	RemoteCommand.HORN_ONLY: Service.HORN_AND_LIGHTS,
+}
 
 
 class BaseSchema(BaseModel):
@@ -139,10 +153,10 @@ class VehicleStatus(BaseSchema):
 	lockStatus: LockStatus
 
 class LocationStatus(BaseSchema):
-	status: Optional[str] = None
-	serviceType: Optional[str] = None
-	activationDateTime: Optional[datetime] = None
-	statusChangeDateTime: Optional[datetime] = None
+	status: str | None = None
+	serviceType: str | None = None
+	activationDateTime: datetime | None = None
+	statusChangeDateTime: datetime | None = None
 	location: GeoPoint
 
 class RequestState(StrEnum):
@@ -156,6 +170,6 @@ class RequestStatus(BaseSchema):
 	serviceRequestId: str
 	serviceType: ServiceType
 	status: RequestState
-	activationDateTime: Optional[datetime] = None
-	statusChangeDateTime: Optional[datetime] = None
-	command: Optional[RemoteCommand] = None
+	activationDateTime: datetime | None = None
+	statusChangeDateTime: datetime | None = None
+	command: RemoteCommand | None = None

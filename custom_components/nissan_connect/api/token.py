@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from time import time
 from typing import Any, Protocol, Self
 
-from custom_components.nissan_connect.api.error import MissingTokenError
+from .error import MissingTokenError
 
 
 @dataclass

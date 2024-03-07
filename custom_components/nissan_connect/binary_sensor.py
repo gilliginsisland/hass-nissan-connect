@@ -108,7 +108,7 @@ MALFUNCTION_SENSORS: tuple[BinarySensorEntityDescription, ...] = (
     BinarySensorEntityDescription(
         key='oilPressureSwitch',
         name='Oil Pressure Switch',
-        icon='mdi:car-emergency',
+        icon='mdi:oil',
         device_class=BinarySensorDeviceClass.PROBLEM,
     ),
     BinarySensorEntityDescription(
