@@ -6,7 +6,10 @@ import functools as ft
 from datetime import timedelta
 import asyncio
 
+import requests
+
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.entity import DeviceInfo, Entity, EntityDescription
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
@@ -51,6 +54,10 @@ class NissanDataUpdateCoordinator(DataUpdateCoordinator[_T]):
         """Update data."""
         try:
             return await self._update_method(self.vehicle)
+        except requests.exceptions.HTTPError as err:
+            if 400 <= err.response.status_code < 500:
+                raise ConfigEntryAuthFailed() from err
+            raise err
         except Exception as err:
             raise UpdateFailed() from err
 
