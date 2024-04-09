@@ -7,9 +7,12 @@ from dataclasses import dataclass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PIN, Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util.async_ import run_callback_threadsafe
+
+from custom_components.nissan_connect.api.error import TokenRefreshError
 
 from .api.auth import TokenAuth, Token
 from .api.vehicle import Vehicle
@@ -46,9 +49,13 @@ async def async_setup(hass: HomeAssistant, _: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     auth = TokenAuth(token_storage=TokenStorage(hass, entry))
-    vehicle = Vehicle(auth, entry.data[CONF_VIN], pin=entry.data[CONF_PIN])
+    try:
+        await hass.async_add_executor_job(auth.refresh)
+    except TokenRefreshError as err:
+        raise ConfigEntryAuthFailed(err)
 
     # Setup the coordinator and set up all platforms
+    vehicle = Vehicle(auth, entry.data[CONF_VIN], pin=entry.data[CONF_PIN])
     data = DomainData(
         vehicle=vehicle,
         location=NissanDataUpdateCoordinator(

@@ -33,7 +33,7 @@ TRACKER_TYPES = [
 ]
 
 
-class NissanDeviceTracker(NissanCoordinatorEntity[EntityDescription, LocationStatus], TrackerEntity):
+class NissanDeviceTracker(NissanCoordinatorEntity[LocationStatus], TrackerEntity):
     """Nissan device tracker."""
 
     @property

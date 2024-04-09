@@ -31,7 +31,7 @@ LOCK_TYPES = [
 ]
 
 
-class NissanLock(NissanCoordinatorEntity[LockEntityDescription, VehicleStatus], LockEntity):
+class NissanLock(NissanCoordinatorEntity[VehicleStatus], LockEntity):
     """Nissan vehicle lock."""
 
     @property

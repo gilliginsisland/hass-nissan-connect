@@ -4,6 +4,8 @@ from requests import Session
 from requests.auth import AuthBase
 from requests.models import PreparedRequest
 
+from custom_components.nissan_connect.api.error import TokenRefreshError
+
 from .const import (
 	NISSAN_CONNECT_APP_ID,
 	NISSAN_TENANT_ID,
@@ -49,7 +51,10 @@ class TokenAuth(AuthBase):
 
 	def _post(self, credentials: dict[str, str]):
 		r = self._session.post(self._token_url, json=credentials)
-		r.raise_for_status()
+		try:
+			r.raise_for_status()
+		except Exception as err:
+			raise TokenRefreshError(str(err)) from err
 		self._token_storage.set(Token.from_dict(r.json()))
 
 	def generate(self, username: str, password: str):

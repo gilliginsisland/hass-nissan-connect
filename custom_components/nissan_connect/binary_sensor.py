@@ -120,10 +120,7 @@ MALFUNCTION_SENSORS: tuple[BinarySensorEntityDescription, ...] = (
 )
 
 
-class NissanLockSensor(
-    NissanCoordinatorEntity[BinarySensorEntityDescription, VehicleStatus],
-    BinarySensorEntity
-):
+class NissanLockSensor(NissanCoordinatorEntity[VehicleStatus], BinarySensorEntity):
     """Nissan door sensor."""
 
     @property
@@ -131,10 +128,7 @@ class NissanLockSensor(
         return self.data.lockStatus[self.entity_description.key] == DoorState.OPEN
 
 
-class NissanMalfunctionIndicatorLamp(
-    NissanCoordinatorEntity[BinarySensorEntityDescription, VehicleStatus],
-    BinarySensorEntity
-):
+class NissanMalfunctionIndicatorLamp(NissanCoordinatorEntity[VehicleStatus], BinarySensorEntity):
     """Nissan malfunction indicator lamp sensor."""
 
     @property

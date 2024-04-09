@@ -46,7 +46,7 @@ TIRE_SENSOR_TYPES = {
 }
 
 
-class NissanTirePressureSensor(NissanCoordinatorEntity[SensorEntityDescription, VehicleStatus], SensorEntity):
+class NissanTirePressureSensor(NissanCoordinatorEntity[VehicleStatus], SensorEntity):
     """Nissan tire pressure sensor."""
 
     @property
