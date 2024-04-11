@@ -1,8 +1,7 @@
 from time import time
 
-from requests import Session
+from requests import Session, PreparedRequest, HTTPError
 from requests.auth import AuthBase
-from requests.models import PreparedRequest
 
 from custom_components.nissan_connect.api.error import TokenRefreshError
 
@@ -53,7 +52,7 @@ class TokenAuth(AuthBase):
 		r = self._session.post(self._token_url, json=credentials)
 		try:
 			r.raise_for_status()
-		except Exception as err:
+		except HTTPError as err:
 			raise TokenRefreshError(str(err)) from err
 		self._token_storage.set(Token.from_dict(r.json()))
 
