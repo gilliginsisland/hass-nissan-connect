@@ -7,19 +7,17 @@ from homeassistant.components.button import ButtonEntity, ButtonEntityDescriptio
 
 from .api.schema import RemoteCommand
 
-from . import DomainData
-from .const import DOMAIN
+from . import RuntimeData
 from .coordinator import NissanEntity
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: ConfigEntry[RuntimeData],
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the BMW buttons from config entry."""
-    data: DomainData = hass.data[DOMAIN][config_entry.entry_id]
-    async_add_entities([NissanButton(data.vehicle, button) for button in BUTTON_TYPES])
+    async_add_entities([NissanButton(config_entry.runtime_data.vehicle, button) for button in BUTTON_TYPES])
 
 
 BUTTON_TYPES: list[ButtonEntityDescription] = [

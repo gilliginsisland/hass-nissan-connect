@@ -14,19 +14,17 @@ from homeassistant.components.sensor import (
 
 from .api.schema import VehicleStatus
 
-from . import DomainData
-from .const import DOMAIN
+from . import RuntimeData
 from .coordinator import NissanCoordinatorEntity
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: ConfigEntry[RuntimeData],
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Nissan tracker from config entry."""
-    data: DomainData = hass.data[DOMAIN][config_entry.entry_id]
-    async_add_entities([NissanTirePressureSensor(data.status, sensor) for sensor in TIRE_SENSOR_TYPES])
+    async_add_entities([NissanTirePressureSensor(config_entry.runtime_data.status, sensor) for sensor in TIRE_SENSOR_TYPES])
 
 
 TIRE_TYPES = {

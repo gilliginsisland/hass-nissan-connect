@@ -9,19 +9,17 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .api.schema import LocationStatus
 
-from . import DomainData
-from .const import DOMAIN
+from . import RuntimeData
 from .coordinator import NissanCoordinatorEntity
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: ConfigEntry[RuntimeData],
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Nissan tracker from config entry."""
-    data: DomainData = hass.data[DOMAIN][config_entry.entry_id]
-    async_add_entities([NissanDeviceTracker(data.location, tracker) for tracker in TRACKER_TYPES])
+    async_add_entities([NissanDeviceTracker(config_entry.runtime_data.location, tracker) for tracker in TRACKER_TYPES])
 
 
 TRACKER_TYPES = [

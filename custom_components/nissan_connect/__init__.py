@@ -9,7 +9,6 @@ from homeassistant.const import CONF_PIN, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers.typing import ConfigType
 from homeassistant.util.async_ import run_callback_threadsafe
 
 from custom_components.nissan_connect.api.error import TokenRefreshError
@@ -35,19 +34,18 @@ PLATFORMS = [
 
 
 @dataclass
-class DomainData():
+class RuntimeData():
     vehicle: Vehicle
     status: NissanDataUpdateCoordinator[VehicleStatus]
     location: NissanDataUpdateCoordinator[LocationStatus]
 
 
-async def async_setup(hass: HomeAssistant, _: ConfigType) -> bool:
+async def async_setup(*args, **kwargs) -> bool:
     """Set up the Nissan component."""
-    hass.data[DOMAIN] = {}
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry[RuntimeData]) -> bool:
     auth = TokenAuth(token_storage=TokenStorage(hass, entry))
     try:
         await hass.async_add_executor_job(auth.refresh)
@@ -56,7 +54,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Setup the coordinator and set up all platforms
     vehicle = Vehicle(auth, entry.data[CONF_VIN], pin=entry.data[CONF_PIN])
-    data = DomainData(
+    data = RuntimeData(
         vehicle=vehicle,
         location=NissanDataUpdateCoordinator(
             hass, vehicle=vehicle, method=Vehicle.location,
@@ -65,8 +63,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass, vehicle=vehicle, method=Vehicle.vehicle_status,
         ),
     )
-
-    hass.data[DOMAIN][entry.entry_id] = data
+    entry.runtime_data = data
 
     await asyncio.gather(
         data.location.async_config_entry_first_refresh(),
