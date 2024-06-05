@@ -8,10 +8,6 @@ from homeassistant.const import (
     CONF_PASSWORD,
     CONF_PIN,
 )
-from homeassistant.data_entry_flow import (
-    FlowHandler,
-    FlowResult,
-)
 
 from .api.auth import TokenAuth
 
@@ -45,17 +41,43 @@ async def generate_token(
     return auth.token.to_dict()
 
 
-class FlowMixin(FlowHandler):
-    """Represent the base config flow for NissanConnect."""
+class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+    """Handle a config flow for Nissan."""
+
+    VERSION = 1
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._current: dict[str, Any] = {}
         self._entry: config_entries.ConfigEntry | None = None
+        self._reason: str = "reconfigure_success"
+
+    def _async_create_current(self) -> config_entries.ConfigFlowResult:
+        """Create or update the config_entry."""
+        if self._entry:
+            self.async_update_reload_and_abort(
+                self._entry,
+                data=self._entry.data | self._current,
+                reason=self._reason
+            )
+
+        return self.async_create_entry(
+            title=self._current[CONF_VIN],
+            data=self._current,
+        )
+
+    def async_show_form(
+        self, *,
+        data_schema: vol.Schema | None = None,
+        **kwargs,
+    ) -> config_entries.ConfigFlowResult:
+        if data_schema:
+            data_schema = self.add_suggested_values_to_schema(data_schema, self._current)
+        return super().async_show_form(data_schema=data_schema, **kwargs)
 
     async def async_step_vehicle_data(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> config_entries.ConfigFlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
             self._current[CONF_VIN] = user_input[CONF_VIN]
@@ -70,40 +92,9 @@ class FlowMixin(FlowHandler):
             errors=errors,
         )
 
-    def _async_create_current(self) -> FlowResult:
-        """Create or update the config_entry."""
-        if self._entry:
-            self.hass.config_entries.async_update_entry(
-                self._entry, data=self._entry.data | self._current
-            )
-            self.hass.async_create_task(
-                self.hass.config_entries.async_reload(self._entry.entry_id)
-            )
-            return self.async_abort(reason="reauth_successful")
-
-        return self.async_create_entry(
-            title=self._current[CONF_VIN],
-            data=self._current,
-        )
-
-    def async_show_form(
-        self, *,
-        data_schema: vol.Schema | None = None,
-        **kwargs,
-    ) -> FlowResult:
-        if data_schema:
-            data_schema = self.add_suggested_values_to_schema(data_schema, self._current)
-        return super().async_show_form(data_schema=data_schema, **kwargs)
-
-
-class ConfigFlow(FlowMixin, config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Nissan."""
-
-    VERSION = 1
-
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> config_entries.ConfigFlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
             self._current[CONF_USERNAME] = user_input[CONF_USERNAME]
@@ -124,30 +115,31 @@ class ConfigFlow(FlowMixin, config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> FlowResult:
+    async def async_step_reauth(
+        self, entry_data: Mapping[str, Any]
+    ) -> config_entries.ConfigFlowResult:
         """Handle configuration by re-auth."""
-        self._entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
-        self._current.update(entry_data)
+        self._async_reconfigure(entry_data)
         return await self.async_step_user()
 
-    @staticmethod
-    @core.callback
-    def async_get_options_flow(
-        config_entry: config_entries.ConfigEntry,
-    ) -> config_entries.OptionsFlow:
-        """Create the options flow."""
-        return OptionsFlow(config_entry)
-
-
-class OptionsFlow(FlowMixin, config_entries.OptionsFlowWithConfigEntry):
-    """Handle an options flow for Nissan."""
-
-    async def async_step_init(
+    async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        self._entry = self.config_entry
-        self._current.update(self.config_entry.data)
-        return await self.async_step_vehicle_data(user_input)
+    ) -> config_entries.ConfigFlowResult:
+        """Handle a reconfiguration flow initialized by the user."""
+        self._async_reconfigure(user_input)
+        return await self.async_step_vehicle_data()
+
+    def _async_reconfigure(
+        self, entry_data: Mapping[str, Any] | None = None, reason: str | None = None
+    ):
+        if entry_id := self.context.get("entry_id"):
+            self._entry = self.hass.config_entries.async_get_entry(entry_id)
+        if self._entry:
+            self._current.update(**self._entry.data)
+        if entry_data:
+            self._current.update(**entry_data)
+        if reason:
+            self._reason = reason
 
 
 class CannotConnect(exceptions.HomeAssistantError):
