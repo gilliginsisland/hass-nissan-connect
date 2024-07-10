@@ -40,11 +40,6 @@ class RuntimeData():
     location: NissanDataUpdateCoordinator[LocationStatus]
 
 
-async def async_setup(*args, **kwargs) -> bool:
-    """Set up the Nissan component."""
-    return True
-
-
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry[RuntimeData]) -> bool:
     auth = TokenAuth(token_storage=TokenStorage(hass, entry))
     try:

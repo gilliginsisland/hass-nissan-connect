@@ -10,7 +10,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .api.schema import LocationStatus
 
 from . import RuntimeData
-from .coordinator import NissanCoordinatorEntity
+from .entity import NissanCoordinatorEntity
 
 
 async def async_setup_entry(

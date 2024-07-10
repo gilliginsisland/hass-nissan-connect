@@ -13,7 +13,7 @@ from homeassistant.components.binary_sensor import (
 from .api.schema import DoorState, VehicleStatus
 
 from . import RuntimeData
-from .coordinator import NissanCoordinatorEntity
+from .entity import NissanCoordinatorEntity
 
 
 async def async_setup_entry(

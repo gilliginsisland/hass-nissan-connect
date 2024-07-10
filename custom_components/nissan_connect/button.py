@@ -8,7 +8,7 @@ from homeassistant.components.button import ButtonEntity, ButtonEntityDescriptio
 from .api.schema import RemoteCommand
 
 from . import RuntimeData
-from .coordinator import NissanEntity
+from .entity import NissanEntity
 
 
 async def async_setup_entry(

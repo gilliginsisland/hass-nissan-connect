@@ -8,14 +8,14 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.sensor import (
     SensorEntity,
     SensorEntityDescription,
-    SensorStateClass,
-    SensorDeviceClass,
+    SensorStateClass, # pyright: ignore[reportPrivateImportUsage]
+    SensorDeviceClass, # pyright: ignore[reportPrivateImportUsage]
 )
 
 from .api.schema import VehicleStatus
 
 from . import RuntimeData
-from .coordinator import NissanCoordinatorEntity
+from .entity import NissanCoordinatorEntity
 
 
 async def async_setup_entry(

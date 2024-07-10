@@ -8,7 +8,7 @@ from homeassistant.components.lock import LockEntity, LockEntityDescription
 from .api.schema import LockState, VehicleStatus
 
 from . import RuntimeData
-from .coordinator import NissanCoordinatorEntity
+from .entity import NissanCoordinatorEntity
 
 
 async def async_setup_entry(
