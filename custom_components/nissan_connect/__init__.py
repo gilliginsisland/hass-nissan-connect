@@ -11,9 +11,8 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import device_registry as dr
 from homeassistant.util.async_ import run_callback_threadsafe
 
-from custom_components.nissan_connect.api.error import TokenRefreshError
-
 from .api.auth import TokenAuth, Token
+from .api.error import TokenRefreshError
 from .api.vehicle import Vehicle
 from .api.schema import LocationStatus, VehicleStatus
 
@@ -49,7 +48,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry[RuntimeData]
 
     # Setup the coordinator and set up all platforms
     vehicle = Vehicle(auth, entry.data[CONF_VIN], pin=entry.data[CONF_PIN])
-    data = RuntimeData(
+    data = entry.runtime_data = RuntimeData(
         vehicle=vehicle,
         location=NissanDataUpdateCoordinator(
             hass, vehicle=vehicle, method=Vehicle.location,
@@ -58,7 +57,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry[RuntimeData]
             hass, vehicle=vehicle, method=Vehicle.vehicle_status,
         ),
     )
-    entry.runtime_data = data
 
     await asyncio.gather(
         data.location.async_config_entry_first_refresh(),

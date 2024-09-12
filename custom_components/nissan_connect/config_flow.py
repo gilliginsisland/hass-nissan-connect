@@ -52,8 +52,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._entry: config_entries.ConfigEntry | None = None
         self._reason: str = "reconfigure_success"
 
-    def _async_create_current(self) -> config_entries.ConfigFlowResult:
+    async def _async_create_current(self) -> config_entries.ConfigFlowResult:
         """Create or update the config_entry."""
+        await self.async_set_unique_id(self._current[CONF_VIN])
+
         if self._entry:
             self.async_update_reload_and_abort(
                 self._entry,
@@ -84,7 +86,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._current[CONF_PIN] = user_input[CONF_PIN]
 
             if not errors:
-                return self._async_create_current()
+                return await self._async_create_current()
 
         return self.async_show_form(
             step_id="vehicle_data",
