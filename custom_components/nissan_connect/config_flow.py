@@ -50,17 +50,17 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         super().__init__(*args, **kwargs)
         self._current: dict[str, Any] = {}
         self._entry: config_entries.ConfigEntry | None = None
-        self._reason: str = "reconfigure_success"
+        self._reason: str = "reconfigure"
 
     async def _async_create_current(self) -> config_entries.ConfigFlowResult:
         """Create or update the config_entry."""
         await self.async_set_unique_id(self._current[CONF_VIN])
 
         if self._entry:
-            self.async_update_reload_and_abort(
+            return self.async_update_reload_and_abort(
                 self._entry,
                 data=self._entry.data | self._current,
-                reason=self._reason
+                reason=self._reason+"_successful"
             )
 
         return self.async_create_entry(
@@ -121,14 +121,14 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, entry_data: Mapping[str, Any]
     ) -> config_entries.ConfigFlowResult:
         """Handle configuration by re-auth."""
-        self._async_reconfigure(entry_data)
+        self._async_reconfigure(entry_data, reason="reauth")
         return await self.async_step_user()
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
         """Handle a reconfiguration flow initialized by the user."""
-        self._async_reconfigure(user_input)
+        self._async_reconfigure(user_input, reason="reconfigure")
         return await self.async_step_vehicle_data()
 
     def _async_reconfigure(
