@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PIN, Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 from homeassistant.util.async_ import run_callback_threadsafe
 
@@ -44,7 +44,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry[RuntimeData]
     try:
         await hass.async_add_executor_job(auth.refresh)
     except TokenRefreshError as err:
-        raise ConfigEntryAuthFailed(err)
+        raise ConfigEntryAuthFailed(str(err))
+    except Exception as err:
+        raise ConfigEntryNotReady() from err
 
     # Setup the coordinator and set up all platforms
     vehicle = Vehicle(auth, entry.data[CONF_VIN], pin=entry.data[CONF_PIN])
