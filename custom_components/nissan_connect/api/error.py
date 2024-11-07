@@ -3,3 +3,9 @@ class MissingTokenError(Exception):
 
 class TokenRefreshError(Exception):
 	pass
+
+class TokenAuthError(TokenRefreshError):
+	pass
+
+class TokenApiError(TokenRefreshError):
+	pass

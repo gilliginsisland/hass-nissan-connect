@@ -12,7 +12,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.util.async_ import run_callback_threadsafe
 
 from .api.auth import TokenAuth, Token
-from .api.error import TokenRefreshError
+from .api.error import TokenAuthError
 from .api.vehicle import Vehicle
 from .api.schema import LocationStatus, VehicleStatus
 
@@ -43,8 +43,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry[RuntimeData]
     auth = TokenAuth(token_storage=TokenStorage(hass, entry))
     try:
         await hass.async_add_executor_job(auth.refresh)
-    except TokenRefreshError as err:
-        raise ConfigEntryAuthFailed(str(err))
+    except TokenAuthError as err:
+        raise ConfigEntryAuthFailed() from err
     except Exception as err:
         raise ConfigEntryNotReady() from err
 

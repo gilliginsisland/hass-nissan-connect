@@ -12,7 +12,7 @@ from homeassistant.helpers.update_coordinator import (
     UpdateFailed,
 )
 
-from .api.error import TokenRefreshError
+from .api.error import TokenAuthError
 from .api.vehicle import Vehicle
 
 _LOGGER = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ class NissanDataUpdateCoordinator(DataUpdateCoordinator[_T]):
         """Update data."""
         try:
             return await self._update_method(self.vehicle)
-        except TokenRefreshError as err:
-            raise ConfigEntryAuthFailed(err) from err
+        except TokenAuthError as err:
+            raise ConfigEntryAuthFailed() from err
         except Exception as err:
             raise UpdateFailed() from err

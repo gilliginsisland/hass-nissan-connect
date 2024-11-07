@@ -1,16 +1,27 @@
 from time import time
 
-from requests import Session, PreparedRequest, HTTPError
+from requests import (
+	Session,
+	PreparedRequest,
+	HTTPError,
+)
 from requests.auth import AuthBase
-
-from custom_components.nissan_connect.api.error import TokenRefreshError
 
 from .const import (
 	NISSAN_CONNECT_APP_ID,
 	NISSAN_TENANT_ID,
 	NISSAN_TOKEN_URL,
 )
-from .token import SimpleTokenStorage, Token, TokenStorage
+from .error import (
+	TokenApiError,
+	TokenAuthError,
+	TokenRefreshError,
+)
+from .token import (
+	Token,
+	TokenStorage,
+	SimpleTokenStorage,
+)
 
 
 class CVAuth(AuthBase):
@@ -49,11 +60,17 @@ class TokenAuth(AuthBase):
 		self._token_storage.set(token)
 
 	def _post(self, credentials: dict[str, str]):
-		r = self._session.post(self._token_url, json=credentials)
 		try:
+			r = self._session.post(self._token_url, json=credentials)
 			r.raise_for_status()
 		except HTTPError as err:
-			raise TokenRefreshError(str(err)) from err
+			if 400 <= err.response.status_code < 500:
+				raise TokenAuthError(err) from err
+			else:
+				raise TokenApiError(err) from err
+		except Exception as err:
+			raise TokenRefreshError(err) from err
+
 		self._token_storage.set(Token.from_dict(r.json()))
 
 	def generate(self, username: str, password: str):
