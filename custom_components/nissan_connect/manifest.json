@@ -1,6 +1,9 @@
 {
   "domain": "nissan_connect",
   "name": "NissanConnect",
+  "requirements": [
+    "pydantic"
+  ],
   "codeowners": [
     "gilliginsisland"
   ],

@@ -1,7 +1,7 @@
 from typing import Callable
 import logging
 
-from pydantic import parse_obj_as
+from pydantic import TypeAdapter
 from requests import Session
 
 from .const import CV_BASE_URL
@@ -69,8 +69,7 @@ class Vehicle():
 		)
 
 	def service_history(self) -> list[RequestStatus]:
-		return parse_obj_as(
-			list[RequestStatus],
+		return TypeAdapter(list[RequestStatus]).validate_python(
 			self.get_status(Service.SERVICE_HISTORY)
 		)
 
