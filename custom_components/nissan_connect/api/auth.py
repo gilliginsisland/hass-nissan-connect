@@ -4,6 +4,7 @@ from requests import (
 	Session,
 	PreparedRequest,
 	HTTPError,
+	RequestException,
 )
 from requests.auth import AuthBase
 
@@ -64,11 +65,11 @@ class TokenAuth(AuthBase):
 			r = self._session.post(self._token_url, json=credentials)
 			r.raise_for_status()
 		except HTTPError as err:
-			if 400 <= err.response.status_code < 500:
+			if err.response is not None and 400 <= err.response.status_code < 500:
 				raise TokenAuthError(err) from err
 			else:
 				raise TokenApiError(err) from err
-		except Exception as err:
+		except RequestException as err:
 			raise TokenRefreshError(err) from err
 
 		self._token_storage.set(Token.from_dict(r.json()))
