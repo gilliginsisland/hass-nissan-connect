@@ -1,26 +1,23 @@
 import functools as ft
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
 
-from .api.schema import RemoteCommand
+from .api.schema import RemoteCommand, VehicleStatus
 
-from . import RuntimeData
-from .entity import NissanEntity
+from . import VehicleRuntimeData
+from .entity import NissanCoordinatorEntity, async_vehicle_entry_setup
 
 
-async def async_setup_entry(
-    hass: HomeAssistant,
-    config_entry: ConfigEntry[RuntimeData],
-    async_add_entities: AddEntitiesCallback,
-) -> None:
+@async_vehicle_entry_setup
+def async_setup_entry(runtime_data: VehicleRuntimeData):
     """Set up the BMW buttons from config entry."""
-    async_add_entities([NissanButton(config_entry.runtime_data.vehicle, button) for button in BUTTON_TYPES])
+    return [
+        NissanButton(runtime_data.status_coordinator, button)
+        for button in BUTTON_TYPES
+    ]
 
 
-BUTTON_TYPES: list[ButtonEntityDescription] = [
+BUTTON_TYPES: tuple[ButtonEntityDescription, ...] = (
     ButtonEntityDescription(
         key=RemoteCommand.LOCK.name,
         name='Remote Lock',
@@ -53,10 +50,10 @@ BUTTON_TYPES: list[ButtonEntityDescription] = [
         key=RemoteCommand.HORN_LIGHT.name,
         name='Remote Horn Lights',
     ),
-]
+)
 
 
-class NissanButton(NissanEntity, ButtonEntity):
+class NissanButton(NissanCoordinatorEntity[VehicleStatus], ButtonEntity):
     """Representation of a NissanConnect button."""
 
     async def async_press(self) -> None:

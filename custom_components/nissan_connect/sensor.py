@@ -1,10 +1,7 @@
 """Device tracker for Nissan vehicles."""
 from __future__ import annotations
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfPressure
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.sensor import (
     SensorEntity,
     SensorEntityDescription,
@@ -14,34 +11,34 @@ from homeassistant.components.sensor import (
 
 from .api.schema import VehicleStatus
 
-from . import RuntimeData
-from .entity import NissanCoordinatorEntity
+from . import VehicleRuntimeData
+from .entity import NissanCoordinatorEntity, async_vehicle_entry_setup
 
 
-async def async_setup_entry(
-    hass: HomeAssistant,
-    config_entry: ConfigEntry[RuntimeData],
-    async_add_entities: AddEntitiesCallback,
-) -> None:
+@async_vehicle_entry_setup
+def async_setup_entry(runtime_data: VehicleRuntimeData):
     """Set up the Nissan tracker from config entry."""
-    async_add_entities([NissanTirePressureSensor(config_entry.runtime_data.status, sensor) for sensor in TIRE_SENSOR_TYPES])
+    return [
+        NissanTirePressureSensor(runtime_data.status_coordinator, sensor)
+        for sensor in TIRE_SENSOR_TYPES
+    ]
 
 
-TIRE_TYPES = {
-    'flPressure': 'Front Left Tire Pressure',
-    'frPressure': 'Front Right Tire Pressure',
-    'rlPressure': 'Rear Left Tire Pressure',
-    'rrPressure': 'Rear Right Tire Pressure',
-}
+TIRE_TYPES: tuple[tuple[str, str], ...] = (
+    ('flPressure', 'Front Left Tire Pressure'),
+    ('frPressure', 'Front Right Tire Pressure'),
+    ('rlPressure', 'Rear Left Tire Pressure'),
+    ('rrPressure', 'Rear Right Tire Pressure'),
+)
 
-TIRE_SENSOR_TYPES = {
+TIRE_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = tuple(
     SensorEntityDescription(
         key=key, name=value, icon='mdi:tire',
         device_class=SensorDeviceClass.PRESSURE,
         native_unit_of_measurement=UnitOfPressure.PSI,
         state_class=SensorStateClass.MEASUREMENT,
-    ) for key, value in TIRE_TYPES.items()
-}
+    ) for key, value in TIRE_TYPES
+)
 
 
 class NissanTirePressureSensor(NissanCoordinatorEntity[VehicleStatus], SensorEntity):

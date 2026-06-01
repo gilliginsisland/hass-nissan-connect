@@ -1,9 +1,12 @@
 {
   "config": {
     "abort": {
-      "already_configured": "Account is already configured"
+      "already_configured": "Account is already configured",
+      "reauth_successful": "Re-authentication was successful",
+      "reconfigure_successful": "Account was updated successfully"
     },
     "error": {
+      "already_configured": "Account is already configured",
       "cannot_connect": "Failed to connect",
       "invalid_auth": "Invalid authentication"
     },
@@ -14,30 +17,30 @@
           "username": "Username",
           "password": "Password"
         }
-      },
-      "vehicle_data": {
-        "title": "Vehicle Options",
-        "data": {
-          "vin": "VIN Number",
-          "pin": "PIN Code"
-        }
       }
     }
   },
-  "options": {
-    "abort": {
-      "already_configured": "Account is already configured"
-    },
-    "error": {
-      "cannot_connect": "Failed to connect",
-      "invalid_auth": "Invalid authentication"
-    },
-    "step": {
-      "vehicle_data": {
-        "title": "Vehicle Options",
-        "data": {
-          "vin": "VIN Number",
-          "pin": "PIN Code"
+  "config_subentries": {
+    "vehicle": {
+      "title": "Vehicle",
+      "abort": {
+        "already_configured": "Vehicle is already configured",
+        "reconfigure_successful": "Vehicle was updated successfully"
+      },
+      "step": {
+        "user": {
+          "title": "Add vehicle",
+          "data": {
+            "vin": "VIN Number",
+            "pin": "PIN Code"
+          }
+        },
+        "reconfigure": {
+          "title": "Vehicle Options",
+          "data": {
+            "vin": "VIN Number",
+            "pin": "PIN Code"
+          }
         }
       }
     }

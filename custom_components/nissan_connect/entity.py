@@ -1,6 +1,8 @@
 """Coordinator for Nissan."""
 from __future__ import annotations
-from typing import Callable, TypeVar
+import functools as ft
+from collections.abc import Awaitable, Callable, Iterable
+from typing import TYPE_CHECKING, Generic, TypeVar
 import asyncio
 
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -9,15 +11,47 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .api.vehicle import RequestStatusTracker, Vehicle
 from .api.schema import (
+    LocationStatus,
     RequestState,
     RequestStatus,
+    VehicleStatus,
 )
 
 from .const import DOMAIN, ATTRIBUTION
-from .coordinator import NissanDataUpdateCoordinator
+from .coordinator import NissanUpdateCoordinator
 
-_T = TypeVar("_T")
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+
+    from . import RuntimeData, VehicleRuntimeData
+
 _RemoteCallable = Callable[[], RequestStatusTracker]
+_CoordinatorDataT = TypeVar("_CoordinatorDataT", LocationStatus, VehicleStatus)
+
+
+def async_vehicle_entry_setup(func: Callable[[VehicleRuntimeData], Iterable[Entity]]) -> Callable[[HomeAssistant, ConfigEntry[RuntimeData], AddConfigEntryEntitiesCallback], Awaitable[None]]:
+    @ft.wraps(func)
+    async def async_setup_entry(
+        hass: HomeAssistant,
+        config_entry: ConfigEntry[RuntimeData],
+        async_add_entities: AddConfigEntryEntitiesCallback,
+    ) -> None:
+        def _add_vehicle_entities(vehicle_data: VehicleRuntimeData) -> None:
+            async_add_entities(
+                list(func(vehicle_data)),
+                config_subentry_id=vehicle_data.subentry_id,
+            )
+
+        for vehicle_data in config_entry.runtime_data.vehicles.values():
+            _add_vehicle_entities(vehicle_data)
+
+        config_entry.async_on_unload(
+            config_entry.runtime_data.async_add_vehicle_listener(_add_vehicle_entities)
+        )
+
+    return async_setup_entry
 
 
 class NissanEntity(Entity):
@@ -43,6 +77,8 @@ class NissanEntity(Entity):
         }
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, vehicle.vin)},
+            manufacturer='Nissan',
+            name=vehicle.vin,
         )
         self._attr_unique_id = f'{vehicle.vin}_{entity_description.key}'
 
@@ -78,12 +114,12 @@ class NissanEntity(Entity):
         self.async_write_ha_state()
 
 
-class NissanCoordinatorEntity(NissanEntity, CoordinatorEntity[NissanDataUpdateCoordinator[_T]]):
+class NissanCoordinatorEntity(NissanEntity, CoordinatorEntity[NissanUpdateCoordinator[_CoordinatorDataT]], Generic[_CoordinatorDataT]):
     """Common base for Nissan coordinator entities."""
 
     def __init__(
         self,
-        coordinator: NissanDataUpdateCoordinator[_T],
+        coordinator: NissanUpdateCoordinator[_CoordinatorDataT],
         entity_description: EntityDescription,
     ) -> None:
         """Initialize entity."""
@@ -94,5 +130,5 @@ class NissanCoordinatorEntity(NissanEntity, CoordinatorEntity[NissanDataUpdateCo
         return await super()._async_post_send_command(command)
 
     @property
-    def data(self) -> _T:
+    def data(self) -> _CoordinatorDataT:
         return self.coordinator.data

@@ -1,9 +1,6 @@
 """Device tracker for Nissan vehicles."""
 from __future__ import annotations
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
     BinarySensorEntityDescription,
@@ -12,24 +9,17 @@ from homeassistant.components.binary_sensor import (
 
 from .api.schema import DoorState, VehicleStatus
 
-from . import RuntimeData
-from .entity import NissanCoordinatorEntity
+from . import VehicleRuntimeData
+from .entity import NissanCoordinatorEntity, async_vehicle_entry_setup
 
 
-async def async_setup_entry(
-    hass: HomeAssistant,
-    config_entry: ConfigEntry[RuntimeData],
-    async_add_entities: AddEntitiesCallback,
-) -> None:
+@async_vehicle_entry_setup
+def async_setup_entry(runtime_data: VehicleRuntimeData):
     """Set up the Nissan tracker from config entry."""
-    sensor_types = (
-        (NissanLockSensor, LOCK_SENSORS),
-        (NissanMalfunctionIndicatorLamp, MALFUNCTION_SENSORS),
-    )
-
-    async_add_entities(
-        [cls(config_entry.runtime_data.status, sensor) for (cls, sensors) in sensor_types for sensor in sensors]
-    )
+    return [
+        cls(runtime_data.status_coordinator, sensor)
+        for (cls, sensors) in SENSOR_TYPES for sensor in sensors
+    ]
 
 
 LOCK_SENSORS: tuple[BinarySensorEntityDescription, ...] = (
@@ -131,3 +121,9 @@ class NissanMalfunctionIndicatorLamp(NissanCoordinatorEntity[VehicleStatus], Bin
     @property
     def is_on(self) -> bool:
         return self.data.healthStatus.malfunctionIndicatorLamps[self.entity_description.key]
+
+
+SENSOR_TYPES = (
+    (NissanLockSensor, LOCK_SENSORS),
+    (NissanMalfunctionIndicatorLamp, MALFUNCTION_SENSORS),
+)

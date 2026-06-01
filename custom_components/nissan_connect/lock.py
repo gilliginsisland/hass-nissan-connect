@@ -1,32 +1,29 @@
 from __future__ import annotations
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.lock import LockEntity, LockEntityDescription
 
 from .api.schema import LockState, VehicleStatus
 
-from . import RuntimeData
-from .entity import NissanCoordinatorEntity
+from . import VehicleRuntimeData
+from .entity import NissanCoordinatorEntity, async_vehicle_entry_setup
 
 
-async def async_setup_entry(
-    hass: HomeAssistant,
-    config_entry: ConfigEntry[RuntimeData],
-    async_add_entities: AddEntitiesCallback,
-) -> None:
+@async_vehicle_entry_setup
+def async_setup_entry(runtime_data: VehicleRuntimeData):
     """Set up the Nissan tracker from config entry."""
-    async_add_entities([NissanLock(config_entry.runtime_data.status, lock) for lock in LOCK_TYPES])
+    return [
+        NissanLock(runtime_data.status_coordinator, lock)
+        for lock in LOCK_TYPES
+    ]
 
 
-LOCK_TYPES = [
+LOCK_TYPES: tuple[LockEntityDescription, ...] = (
     LockEntityDescription(
         key='vehicle_lock',
         name='Lock',
         icon='mdi:car-door-lock',
     ),
-]
+)
 
 
 class NissanLock(NissanCoordinatorEntity[VehicleStatus], LockEntity):

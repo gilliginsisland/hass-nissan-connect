@@ -2,45 +2,42 @@
 from __future__ import annotations
 
 from homeassistant.components.device_tracker import SourceType, TrackerEntity
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityDescription
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .api.schema import LocationStatus
 
-from . import RuntimeData
-from .entity import NissanCoordinatorEntity
+from . import VehicleRuntimeData
+from .entity import NissanCoordinatorEntity, async_vehicle_entry_setup
 
 
-async def async_setup_entry(
-    hass: HomeAssistant,
-    config_entry: ConfigEntry[RuntimeData],
-    async_add_entities: AddEntitiesCallback,
-) -> None:
+@async_vehicle_entry_setup
+def async_setup_entry(runtime_data: VehicleRuntimeData):
     """Set up the Nissan tracker from config entry."""
-    async_add_entities([NissanDeviceTracker(config_entry.runtime_data.location, tracker) for tracker in TRACKER_TYPES])
+    return [
+        NissanDeviceTracker(runtime_data.location_coordinator, tracker)
+        for tracker in TRACKER_TYPES
+    ]
 
 
-TRACKER_TYPES = [
+TRACKER_TYPES: tuple[EntityDescription, ...] = (
     EntityDescription(
         key='vehicle_location',
         name='Location',
         icon='mdi:car',
     )
-]
+)
 
 
 class NissanDeviceTracker(NissanCoordinatorEntity[LocationStatus], TrackerEntity):
     """Nissan device tracker."""
 
     @property
-    def latitude(self) -> float | None:
+    def latitude(self) -> float:
         """Return latitude value of the device."""
         return self.data.location.latitude
 
     @property
-    def longitude(self) -> float | None:
+    def longitude(self) -> float:
         """Return longitude value of the device."""
         return self.data.location.longitude
 
