@@ -161,64 +161,96 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if entry.version > CONFIG_ENTRY_VERSION:
         return False
 
-    if entry.version == CONFIG_ENTRY_VERSION:
-        return True
-
-    stored_data: dict[str, Any] = dict(entry.data)
-    username: str = stored_data[CONF_USERNAME]
-    vin: str = stored_data.pop(CONF_VIN)
-    pin: str = stored_data.pop(CONF_PIN)
-
-    if (
-        (existing_entry := hass.config_entries.async_entry_for_domain_unique_id(
-            DOMAIN, username
-        ))
-        and existing_entry.entry_id != entry.entry_id
-        and existing_entry.version == CONFIG_ENTRY_VERSION
-    ):
+    if CONF_MIGRATED_TO in entry.data:
         hass.config_entries.async_update_entry(
             entry,
-            data={CONF_MIGRATED_TO: existing_entry.entry_id},
-            title=username,
             version=CONFIG_ENTRY_VERSION,
         )
         hass.async_create_task(
             hass.config_entries.async_remove(entry.entry_id),
             f"remove migrated {DOMAIN} config entry {entry.entry_id}",
         )
-        entry = existing_entry
-    else:
-        hass.config_entries.async_update_entry(
-            entry,
-            data={
-                CONF_USERNAME: username,
-                CONF_TOKEN: stored_data[CONF_TOKEN],
-            },
-            title=username,
-            version=CONFIG_ENTRY_VERSION,
-            unique_id=username,
-        )
-
-    normalized_vin = vin.strip().upper()
-    if any(
-        subentry.unique_id == normalized_vin
-        for subentry in entry.get_subentries_of_type(SUBENTRY_TYPE_VEHICLE)
-    ):
         return True
 
-    subentry_data: dict[str, str] = {
-        CONF_VIN: normalized_vin,
-        CONF_PIN: pin,
-    }
-    hass.config_entries.async_add_subentry(
-        entry,
-        ConfigSubentry(
-            data=MappingProxyType(subentry_data),
-            subentry_type=SUBENTRY_TYPE_VEHICLE,
-            title=normalized_vin,
-            unique_id=normalized_vin,
-        ),
-    )
+    device_registry = dr.async_get(hass)
+
+    if entry.version < 2:
+        stored_data: dict[str, Any] = dict(entry.data)
+        username: str = stored_data[CONF_USERNAME]
+        vin: str = stored_data.pop(CONF_VIN)
+        pin: str = stored_data.pop(CONF_PIN)
+
+        if (
+            (existing_entry := hass.config_entries.async_entry_for_domain_unique_id(
+                DOMAIN, username
+            ))
+            and existing_entry.entry_id != entry.entry_id
+            and 2 <= existing_entry.version <= CONFIG_ENTRY_VERSION
+        ):
+            hass.config_entries.async_update_entry(
+                entry,
+                data={CONF_MIGRATED_TO: existing_entry.entry_id},
+                title=username,
+                version=CONFIG_ENTRY_VERSION,
+            )
+            hass.async_create_task(
+                hass.config_entries.async_remove(entry.entry_id),
+                f"remove migrated {DOMAIN} config entry {entry.entry_id}",
+            )
+            entry = existing_entry
+        else:
+            hass.config_entries.async_update_entry(
+                entry,
+                data={
+                    CONF_USERNAME: username,
+                    CONF_TOKEN: stored_data[CONF_TOKEN],
+                },
+                title=username,
+                unique_id=username,
+            )
+
+        normalized_vin = vin.strip().upper()
+        if not any(
+            subentry.unique_id == normalized_vin
+            for subentry in entry.get_subentries_of_type(SUBENTRY_TYPE_VEHICLE)
+        ):
+            subentry_data: dict[str, str] = {
+                CONF_VIN: normalized_vin,
+                CONF_PIN: pin,
+            }
+            vehicle_subentry = ConfigSubentry(
+                data=MappingProxyType(subentry_data),
+                subentry_type=SUBENTRY_TYPE_VEHICLE,
+                title=normalized_vin,
+                unique_id=normalized_vin,
+            )
+            hass.config_entries.async_add_subentry(
+                entry,
+                vehicle_subentry,
+            )
+
+            device = device_registry.async_get_device(
+                identifiers={(DOMAIN, normalized_vin)}
+            )
+            if device:
+                device_registry.async_update_device(
+                    device.id,
+                    add_config_entry_id=entry.entry_id,
+                    add_config_subentry_id=vehicle_subentry.subentry_id,
+                )
+
+    if entry.version < CONFIG_ENTRY_VERSION:
+        for device in dr.async_entries_for_config_entry(device_registry, entry.entry_id):
+            device_registry.async_update_device(
+                device.id,
+                remove_config_entry_id=entry.entry_id,
+                remove_config_subentry_id=None,
+            )
+        hass.config_entries.async_update_entry(
+            entry,
+            version=CONFIG_ENTRY_VERSION,
+        )
+
     return True
 
 

@@ -1,7 +1,7 @@
 DOMAIN = "nissan_connect"
 ATTRIBUTION = "Data provided by NissanConnectedServices"
 
-CONFIG_ENTRY_VERSION = 2
+CONFIG_ENTRY_VERSION = 3
 
 SUBENTRY_TYPE_VEHICLE = "vehicle"
 
