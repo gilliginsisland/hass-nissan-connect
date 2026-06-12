@@ -24,7 +24,7 @@ TRACKER_TYPES: tuple[EntityDescription, ...] = (
         key='vehicle_location',
         name='Location',
         icon='mdi:car',
-    )
+    ),
 )
 
 
