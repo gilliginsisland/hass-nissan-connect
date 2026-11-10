@@ -134,6 +134,8 @@ class MalfunctionIndicatorLampsStatus(BaseSchema):
 	brakeFluidWarning: bool
 	oilPressureWarning: bool
 	tyrePressureWarning: bool
+	# Not reported by every model.
+	emergencyBrakingWarning: bool | None = None
 	oilPressureSwitch: bool
 	lampRequest: bool
 
