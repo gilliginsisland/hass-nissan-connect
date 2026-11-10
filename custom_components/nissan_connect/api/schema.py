@@ -154,7 +154,8 @@ class LockStatus(BaseSchema):
 	doorStatusFrontRight: DoorState
 	doorStatusRearLeft: DoorState
 	doorStatusRearRight: DoorState
-	engineHoodStatus: DoorState
+	# Not reported by every model (e.g. 2021 Titan XD).
+	engineHoodStatus: DoorState | None = None
 	hatchStatus: DoorState
 
 class VehicleStatus(BaseSchema):

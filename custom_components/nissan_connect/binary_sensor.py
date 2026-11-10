@@ -111,8 +111,11 @@ class NissanLockSensor(NissanCoordinatorEntity[VehicleStatus], BinarySensorEntit
     """Nissan door sensor."""
 
     @property
-    def is_on(self) -> bool:
-        return self.data.lockStatus[self.entity_description.key] == DoorState.OPEN
+    def is_on(self) -> bool | None:
+        state = self.data.lockStatus[self.entity_description.key]
+        if state is None:
+            return None
+        return state == DoorState.OPEN
 
 
 class NissanMalfunctionIndicatorLamp(NissanCoordinatorEntity[VehicleStatus], BinarySensorEntity):
