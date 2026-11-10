@@ -87,6 +87,12 @@ MALFUNCTION_SENSORS: tuple[BinarySensorEntityDescription, ...] = (
         device_class=BinarySensorDeviceClass.PROBLEM,
     ),
     BinarySensorEntityDescription(
+        key='emergencyBrakingWarning',
+        name='Emergency Braking Warning',
+        icon='mdi:car-brake-alert',
+        device_class=BinarySensorDeviceClass.PROBLEM,
+    ),
+    BinarySensorEntityDescription(
         key='tyrePressureWarning',
         name='Tire Pressure Warning',
         icon='mdi:car-tire-alert',
@@ -111,19 +117,46 @@ class NissanLockSensor(NissanCoordinatorEntity[VehicleStatus], BinarySensorEntit
     """Nissan door sensor."""
 
     @property
-    def is_on(self) -> bool:
-        return self.data.lockStatus[self.entity_description.key] == DoorState.OPEN
+    def is_on(self) -> bool | None:
+        state = self.data.lockStatus[self.entity_description.key]
+        if state is None:
+            return None
+        return state == DoorState.OPEN
 
 
 class NissanMalfunctionIndicatorLamp(NissanCoordinatorEntity[VehicleStatus], BinarySensorEntity):
     """Nissan malfunction indicator lamp sensor."""
 
     @property
-    def is_on(self) -> bool:
+    def is_on(self) -> bool | None:
         return self.data.healthStatus.malfunctionIndicatorLamps[self.entity_description.key]
+
+
+TIRE_STATUS_SENSORS: tuple[BinarySensorEntityDescription, ...] = tuple(
+    BinarySensorEntityDescription(
+        key=key,
+        name=name,
+        icon='mdi:car-tire-alert',
+        device_class=BinarySensorDeviceClass.PROBLEM,
+    ) for key, name in (
+        ('flStatus', 'Front Left Tire Status'),
+        ('frStatus', 'Front Right Tire Status'),
+        ('rlStatus', 'Rear Left Tire Status'),
+        ('rrStatus', 'Rear Right Tire Status'),
+    )
+)
+
+
+class NissanTireStatusSensor(NissanCoordinatorEntity[VehicleStatus], BinarySensorEntity):
+    """Nissan per-tire pressure status sensor."""
+
+    @property
+    def is_on(self) -> bool:
+        return self.data.pressure[self.entity_description.key]
 
 
 SENSOR_TYPES = (
     (NissanLockSensor, LOCK_SENSORS),
     (NissanMalfunctionIndicatorLamp, MALFUNCTION_SENSORS),
+    (NissanTireStatusSensor, TIRE_STATUS_SENSORS),
 )
